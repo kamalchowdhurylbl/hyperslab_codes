@@ -158,8 +158,8 @@ main (int argc, char **argv)
     }
   /*************************************************************  
 
-  This reads the hyperslab from the sds.h5 file just 
-  created, into a 2-dimensional plane of the 3-dimensional 
+  This reads the hyperslab from the sds1d.h5 file just 
+  created, into a 1-dimensional plane of the 1-dimensional 
   array.
 
  ************************************************************/  
