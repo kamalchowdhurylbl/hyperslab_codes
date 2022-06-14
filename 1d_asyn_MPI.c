@@ -15,6 +15,7 @@
 
 #define RANK1D 1
 #define RANK1D_OUT 1
+#define N 10
 
 
 int
@@ -24,7 +25,7 @@ main (int argc, char **argv)
     hsize_t     dimsf1d[1]; 
     //int         data[X][Y];            /* data to write */
 
-    int data1d[10];
+    int data1d[N];
 
     /* 
      * Data  and output buffer initialization. 
@@ -38,8 +39,8 @@ main (int argc, char **argv)
     hid_t	mpio_plist_id;                 /* property list identifier */                       
 
     
-    int data_out1d[10];   //data out 1d is 10
-    int data_out_1d[10];  //data out _1d is 10  
+    int data_out1d[N];   //data out 1d is 10
+    int data_out_1d[N];  //data out _1d is 10  
      
     hsize_t     count1d[1];              /* size of the hyperslab in the file */
     hsize_t    offset1d[1];             /* hyperslab offset in the file */
@@ -81,7 +82,7 @@ main (int argc, char **argv)
             */
            //1d data
            
-            for (i = 0; i < 10; i++)
+            for (i = 0; i < N; i++)
                 data1d[i] = i;   //data1d=[0,1,....,9]
               
        
@@ -95,7 +96,7 @@ main (int argc, char **argv)
             */
             
 
-            dimsf1d[0]=10;
+            dimsf1d[0]=N;
             dataspace = H5Screate_simple (RANK1D, dimsf1d, NULL); 
             
             /*
@@ -130,7 +131,7 @@ main (int argc, char **argv)
             printf ("First 1D Data:\n ");
             
             
-            for (i = 0; i < 10; i++) printf("%d ", data_out1d[i]);
+            for (i = 0; i < N; i++) printf("%d ", data_out1d[i]);
             printf("\n ");
             /*
             * Close/release resources.
@@ -168,7 +169,7 @@ main (int argc, char **argv)
 
     
      
-    for (i = 0; i < 10; i++) {
+    for (i = 0; i < N; i++) {
 	    
 		data_out_1d[i] = 0;
 	}
@@ -187,7 +188,7 @@ main (int argc, char **argv)
 
 
 
-    dimsm1d[0] = 10;
+    dimsm1d[0] = N;
     
    
     memspace = H5Screate_simple (RANK1D_OUT, dimsm1d, NULL);   //RANK1D_OUT=1
@@ -196,7 +197,7 @@ main (int argc, char **argv)
      */
 
      /*
-     * 0 1 2 3 4 5 6 7 8 9
+     * 0 1 2 3 4 5 6 7 8 9.....
      */
     if(mpi_rank==0){
         offset1d[0] = 0;   // select
@@ -291,14 +292,14 @@ main (int argc, char **argv)
 
     if(mpi_rank==1){
     printf ("MPI rank=%d Data from rank 1:\n ",mpi_rank);
-    for (i = 0; i < 10; i++) printf("%d ", data_out_1d[i]);
+    for (i = 0; i < N; i++) printf("%d ", data_out_1d[i]);
 	printf("\n ");
     }
     //0 0 0 0 0 5 6 7 8 9
     MPI_Barrier(comm);
     if(mpi_rank==0){
         printf ("MPI rank=%d Data from rank 0:\n ",mpi_rank);
-        for (i = 0; i < 10; i++) printf("%d ", data_out_1d[i]);
+        for (i = 0; i < N; i++) printf("%d ", data_out_1d[i]);
         printf("\n");
     }
     /*
