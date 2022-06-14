@@ -15,7 +15,8 @@
 
 #define RANK1D 1
 #define RANK1D_OUT 1
-#define N 10
+
+#define N 40
 
 
 int
@@ -200,7 +201,7 @@ main (int argc, char **argv)
      * 0 1 2 3 4 5 6 7 8 9.....
      */
     if(mpi_rank==0){
-        offset1d[0] = 0;   // select
+        offset1d[0] = 0;   // select from 0 and add 3 elements
         count1d[0]  = 3;
         status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset1d, NULL, count1d, NULL);  
         /*
@@ -214,8 +215,8 @@ main (int argc, char **argv)
         */
        // left corner
         
-        offset_out1d[0] = 0;
-        count_out1d[0]  = 3; //count_out=3 X 4  
+        offset_out1d[0] = 0;  // select from 0 and add 3 elements
+        count_out1d[0]  = 3; //count_out=3  
         status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out1d, NULL, 
                                     count_out1d, NULL);
         
@@ -223,16 +224,17 @@ main (int argc, char **argv)
         
         status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,
                         H5P_DEFAULT, data_out_1d,es_id);
+
         
     //  left middle 
         
-        offset1d[0] = 3;
+        offset1d[0] = 3; // select from 3 and add 2 elements
         count1d[0]  = 2;
         
         status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset1d, NULL, count1d, NULL);  
         
-        offset_out1d[0] = 3;
-        count_out1d[0]  = 2; //count_out= 3X 2  
+        offset_out1d[0] = 3;   // select from 3 and add 2 elements
+        count_out1d[0]  = 2;  
         status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out1d, NULL, 
                                     count_out1d, NULL);
         /*
@@ -241,17 +243,85 @@ main (int argc, char **argv)
         */
         status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,
                         H5P_DEFAULT, data_out_1d,es_id);
+
+
+        
+        
+        
+        offset1d[0] = 5;   // select from 5 and add 5 elements
+        count1d[0]  = 5;
+        status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset1d, NULL, count1d, NULL);  
+        
+        
+        offset_out1d[0] = 5;    // select from 5 and add 5 elements
+        count_out1d[0]  = 5;  
+        status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out1d, NULL, 
+                                    count_out1d, NULL);
+        
+        
+        
+        status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,
+                        H5P_DEFAULT, data_out_1d,es_id);
+        
+        
+        offset1d[0] = 10;   // select from 10 and add 5 elements
+        count1d[0]  = 5;
+        status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset1d, NULL, count1d, NULL);  
+                
+        offset_out1d[0] = 10;  // select from 10 and add 5 elements
+        count_out1d[0]  = 5;  
+        status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out1d, NULL, 
+                                    count_out1d, NULL);
+        
+        
+        
+        status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,
+                        H5P_DEFAULT, data_out_1d,es_id);
+        
+        
+        
+        offset1d[0] = 15;   // select from 15 and add 5 elements
+        count1d[0]  = 5;
+        status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset1d, NULL, count1d, NULL);  
+       
+        
+        offset_out1d[0] = 15;
+        count_out1d[0]  = 5; // select from 15 and add 5 elements
+        status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out1d, NULL, 
+                                    count_out1d, NULL);
+        
+        
+        
+        status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,
+                        H5P_DEFAULT, data_out_1d,es_id);
+
+        
+        
+        offset1d[0] = 20;   // select from 20 and add 5 elements
+        count1d[0]  = 5;
+        status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset1d, NULL, count1d, NULL);  
+       
+        
+        offset_out1d[0] = 20;
+        count_out1d[0]  = 5; // select from 20 and add 5 elements
+        status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out1d, NULL, 
+                                    count_out1d, NULL);
+        
+        
+        
+        status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,
+                        H5P_DEFAULT, data_out_1d,es_id);
     }
     
     
    if(mpi_rank==1){
     //right middle
  
-        offset1d[0] = 5;
+        offset1d[0] = 25;  // select from 25 and add 3 elements
         count1d[0]  = 3;
         status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset1d, NULL, count1d, NULL);  
         
-        offset_out1d[0] = 5;
+        offset_out1d[0] = 25; // select from 25 and add 3 elements
         count_out1d[0]  = 3;
         status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out1d, NULL, 
                                     count_out1d, NULL);
@@ -264,13 +334,13 @@ main (int argc, char **argv)
         
             
         
-        //  right corner
+       
         
-        offset1d[0] = 8;
+        offset1d[0] = 28;   // select from 28 and add 2 elements
         count1d[0]  = 2;
         status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset1d, NULL, count1d, NULL);  
         
-        offset_out1d[0] = 8;  
+        offset_out1d[0] = 28;  // select from 25 and add 2 elements
         count_out1d[0]  = 2;
         status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out1d, NULL, 
                                     count_out1d, NULL);
@@ -280,6 +350,27 @@ main (int argc, char **argv)
         */
         status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,
                         H5P_DEFAULT, data_out_1d,es_id);
+
+        
+        
+        offset1d[0] = 30;   // select from 30 and add 10 elements
+        count1d[0]  = 10;
+        status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset1d, NULL, count1d, NULL);  
+        
+        offset_out1d[0] = 30;  // select from 30 and add 10 elements
+        count_out1d[0]  = 10;
+        status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out1d, NULL, 
+                                    count_out1d, NULL);
+        /*
+        * Read data from hyperslab in the file into the hyperslab in 
+        * memory and display.
+        */
+        status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,
+                        H5P_DEFAULT, data_out_1d,es_id);
+        
+
+
+        
    }
 
     status = H5ESwait(es_id, H5ES_WAIT_FOREVER, &num_in_progress, &op_failed);
@@ -292,6 +383,10 @@ main (int argc, char **argv)
 
     if(mpi_rank==1){
     printf ("MPI rank=%d Data from rank 1:\n ",mpi_rank);
+    printf("select from 25 and add 3 elements\n ");
+    printf("select from 28 and add 2 elements\n ");
+    printf("select from 30 and add 10 elements\n ");
+
     for (i = 0; i < N; i++) printf("%d ", data_out_1d[i]);
 	printf("\n ");
     }
@@ -299,6 +394,12 @@ main (int argc, char **argv)
     MPI_Barrier(comm);
     if(mpi_rank==0){
         printf ("MPI rank=%d Data from rank 0:\n ",mpi_rank);
+        printf("select from 0 and add 3 elements\n ");
+        printf("select from 3 and add 2 elements\n ");
+        printf("select from 5 and add 5 elements\n ");
+        printf("select from 10 and add 5 elements\n ");
+        printf("select from 15 and add 5 elements\n ");
+        printf("select from 20 and add 5 elements\n ");
         for (i = 0; i < N; i++) printf("%d ", data_out_1d[i]);
         printf("\n");
     }
