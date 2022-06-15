@@ -17,6 +17,9 @@
 #define RANK1D_OUT 1
 
 #define N 40
+#define N1 25
+#define N2 15
+
 
 
 int
@@ -184,15 +187,12 @@ main (int argc, char **argv)
     dataspace = H5Dget_space_async (dataset,es_id);    /* dataspace handle */
     rank      = H5Sget_simple_extent_ndims (dataspace);
     status_n  = H5Sget_simple_extent_dims (dataspace, dims_out1d, NULL);
-    printf("\n1D data Rank: %d\nDimensions: %lu \n", rank,
-	   (unsigned long)(dims_out1d[0]));
+    //printf("\n1D data Rank: %d\nDimensions: %lu \n", rank,
+	  // (unsigned long)(dims_out1d[0]));
 
 
 
-    dimsm1d[0] = N;
-    
    
-    memspace = H5Screate_simple (RANK1D_OUT, dimsm1d, NULL);   //RANK1D_OUT=1
     /* 
      * Define hyperslab in the dataset. 
      */
@@ -201,19 +201,15 @@ main (int argc, char **argv)
      * 0 1 2 3 4 5 6 7 8 9.....
      */
     if(mpi_rank==0){
+        
+        dimsm1d[0] = N1;
+    
+   
+        memspace = H5Screate_simple (RANK1D_OUT, dimsm1d, NULL);   //RANK1D_OUT=1
         offset1d[0] = 0;   // select from 0 and add 3 elements
         count1d[0]  = 3;
         status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset1d, NULL, count1d, NULL);  
-        /*
-        * Define the memory dataspace.
-        */
-    
         
-
-        /* 
-        * Define memory hyperslab. 
-        */
-       // left corner
         
         offset_out1d[0] = 0;  // select from 0 and add 3 elements
         count_out1d[0]  = 3; //count_out=3  
@@ -316,12 +312,17 @@ main (int argc, char **argv)
     
    if(mpi_rank==1){
     //right middle
+
+        dimsm1d[0] = N2;
+    
+   
+        memspace = H5Screate_simple (RANK1D_OUT, dimsm1d, NULL);   //RANK1D_OUT=1
  
         offset1d[0] = 25;  // select from 25 and add 3 elements
         count1d[0]  = 3;
         status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset1d, NULL, count1d, NULL);  
         
-        offset_out1d[0] = 25; // select from 25 and add 3 elements
+        offset_out1d[0] = 0; // select from 25 and add 3 elements
         count_out1d[0]  = 3;
         status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out1d, NULL, 
                                     count_out1d, NULL);
@@ -340,7 +341,7 @@ main (int argc, char **argv)
         count1d[0]  = 2;
         status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset1d, NULL, count1d, NULL);  
         
-        offset_out1d[0] = 28;  // select from 25 and add 2 elements
+        offset_out1d[0] = 3;  // select from 3 and add 2 elements
         count_out1d[0]  = 2;
         status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out1d, NULL, 
                                     count_out1d, NULL);
@@ -357,7 +358,7 @@ main (int argc, char **argv)
         count1d[0]  = 10;
         status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset1d, NULL, count1d, NULL);  
         
-        offset_out1d[0] = 30;  // select from 30 and add 10 elements
+        offset_out1d[0] = 5;  // select from 5 and add 10 elements
         count_out1d[0]  = 10;
         status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out1d, NULL, 
                                     count_out1d, NULL);
@@ -383,11 +384,11 @@ main (int argc, char **argv)
 
     if(mpi_rank==1){
     printf ("MPI rank=%d Data from rank 1:\n ",mpi_rank);
-    printf("select from 25 and add 3 elements\n ");
-    printf("select from 28 and add 2 elements\n ");
-    printf("select from 30 and add 10 elements\n ");
+    printf("select from 0 and add 3 elements\n ");
+    printf("select from 3 and add 2 elements\n ");
+    printf("select from 5 and add 10 elements\n ");
 
-    for (i = 0; i < N; i++) printf("%d ", data_out_1d[i]);
+    for (i = 0; i < N2; i++) printf("%d ", data_out_1d[i]);
 	printf("\n ");
     }
     //0 0 0 0 0 5 6 7 8 9
@@ -400,7 +401,7 @@ main (int argc, char **argv)
         printf("select from 10 and add 5 elements\n ");
         printf("select from 15 and add 5 elements\n ");
         printf("select from 20 and add 5 elements\n ");
-        for (i = 0; i < N; i++) printf("%d ", data_out_1d[i]);
+        for (i = 0; i < N1; i++) printf("%d ", data_out_1d[i]);
         printf("\n");
     }
     /*
