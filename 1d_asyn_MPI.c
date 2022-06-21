@@ -9,7 +9,7 @@
 #include "hdf5.h"
 
 
-#define FILE        "sds.h5"
+#define FILE        "sds1d.h5"
 #define FILE1D      "sds1d.h5"
 #define DATASETNAME "IntArray" 
 
@@ -81,84 +81,74 @@ main (int argc, char **argv)
    
         printf("MPI rank=%d",mpi_rank);
    
-            /* 
-            * Set up file access property list with parallel I/O access
-            */
-           //1d data
-           
-            for (i = 0; i < N; i++)
-                data1d[i] = i;   //data1d=[0,1,....,9]
-              
-       
-           
-           //1d operations
-           
-            file1d = H5Fcreate_async (FILE1D, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT,es_id);  
-            /*
-            * Describe the size of the array and create the data space for fixed
-            * size dataset. 
-            */
             
-
-            dimsf1d[0]=N;
-            dataspace = H5Screate_simple (RANK1D, dimsf1d, NULL); 
-            
-            /*
-            * Create a new dataset within the file using defined dataspace and
-            * default dataset creation properties.
-            */
-            dataset = H5Dcreate_async (file1d, DATASETNAME, H5T_STD_I32BE, dataspace,
-                                H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT,es_id);   //H5T_STD_I32BE = 32-bit big-endian signed integers
-
-            /*
-            * Write the data to the dataset using default transfer properties.
-            */
-            status = H5Dwrite_async (dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL,
-                            H5P_DEFAULT, data1d,es_id);  //H5T_NATIVE_INT = C-style int
+        //1d data
         
+        for (i = 0; i < N; i++)
+            data1d[i] = i;   //data1d=[0,1,....,9]
             
+    
         
-            status = H5Dread_async (dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL,
-                        H5P_DEFAULT, data_out1d,es_id);
+        //1d operations
+        
+        file1d = H5Fcreate_async (FILE1D, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT,es_id);  
+        /*
+        * Describe the size of the array and create the data space for fixed
+        * size dataset. 
+        */
+        
 
-            
-            status = H5ESwait(es_id, H5ES_WAIT_FOREVER, &num_in_progress, &op_failed);
-            if (status < 0) {
-                fprintf(stderr, "Error with H5ESwait\n");
-                
-            }
-            if (print_dbg_msg)
-                fprintf(stderr, "H5ESwait done\n");
+        dimsf1d[0]=N;
+        dataspace = H5Screate_simple (RANK1D, dimsf1d, NULL); 
+        
+        
+        dataset = H5Dcreate_async (file1d, DATASETNAME, H5T_STD_I32BE, dataspace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT,es_id);   //H5T_STD_I32BE = 32-bit big-endian signed integers
 
-            
+        
+        status = H5Dwrite_async (dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL,
+                        H5P_DEFAULT, data1d,es_id);  //H5T_NATIVE_INT = C-style int
+    
+        
+    
+        status = H5Dread_async (dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL,
+                    H5P_DEFAULT, data_out1d,es_id);
 
-            printf ("First 1D Data:\n ");
+        
+        status = H5ESwait(es_id, H5ES_WAIT_FOREVER, &num_in_progress, &op_failed);
+        if (status < 0) {
+            fprintf(stderr, "Error with H5ESwait\n");
             
-            
-            for (i = 0; i < N; i++) printf("%d ", data_out1d[i]);
-            printf("\n ");
-            /*
-            * Close/release resources.
-            */
-            H5Sclose (dataspace);
-            status = H5Dclose_async(dataset, es_id);
-            if (status < 0) {
-                fprintf(stderr, "Closing dataset failed\n");
-                //ret = -1;
-            }
+        }
+        if (print_dbg_msg)
+            fprintf(stderr, "H5ESwait done\n");
+
+        
+
+        printf ("First 1D Data:\n ");
+        
+        
+        for (i = 0; i < N; i++) printf("%d ", data_out1d[i]);
+        printf("\n ");
+        
+
+        H5Sclose (dataspace);
+        status = H5Dclose_async(dataset, es_id);
+        if (status < 0) {
+            fprintf(stderr, "Closing dataset failed\n");
+            //ret = -1;
+        }
         
         status = H5Fclose_async(file1d, es_id);
-            if (status < 0) {
-                fprintf(stderr, "Closing file failed\n");
-                //ret = -1;
-            } 
-            //H5Fclose(file);
-            status = H5ESwait(es_id, H5ES_WAIT_FOREVER, &num_in_progress, &op_failed);
-            if (status < 0) {
-                fprintf(stderr, "Error with H5ESwait\n");
-                //ret = -1;
-            } 
-        
+        if (status < 0) {
+            fprintf(stderr, "Closing file failed\n");
+            //ret = -1;
+        } 
+        //H5Fclose(file);
+        status = H5ESwait(es_id, H5ES_WAIT_FOREVER, &num_in_progress, &op_failed);
+        if (status < 0) {
+            fprintf(stderr, "Error with H5ESwait\n");
+            //ret = -1;
+        } 
         
     }
   /*************************************************************  
@@ -184,18 +174,9 @@ main (int argc, char **argv)
                                                         //If the file does not exist, H5Fopen fails. (Default)
     dataset = H5Dopen_async(file1d, DATASETNAME,H5P_DEFAULT,es_id);  //#define DATASETNAME "IntArray" 
 
-    dataspace = H5Dget_space_async (dataset,es_id);    /* dataspace handle */
+    dataspace = H5Dget_space(dataset);    /* dataspace handle */
     rank      = H5Sget_simple_extent_ndims (dataspace);
     status_n  = H5Sget_simple_extent_dims (dataspace, dims_out1d, NULL);
-    //printf("\n1D data Rank: %d\nDimensions: %lu \n", rank,
-	  // (unsigned long)(dims_out1d[0]));
-
-
-
-   
-    /* 
-     * Define hyperslab in the dataset. 
-     */
 
      /*
      * 0 1 2 3 4 5 6 7 8 9.....
@@ -218,11 +199,10 @@ main (int argc, char **argv)
         
         
         
-        status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,
-                        H5P_DEFAULT, data_out_1d,es_id);
+        status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,H5P_DEFAULT, data_out_1d,es_id);
 
         
-    //  left middle 
+        //  left middle 
         
         offset1d[0] = 3; // select from 3 and add 2 elements
         count1d[0]  = 2;
@@ -231,14 +211,9 @@ main (int argc, char **argv)
         
         offset_out1d[0] = 3;   // select from 3 and add 2 elements
         count_out1d[0]  = 2;  
-        status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out1d, NULL, 
-                                    count_out1d, NULL);
-        /*
-        * Read data from hyperslab in the file into the hyperslab in 
-        * memory and display.
-        */
-        status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,
-                        H5P_DEFAULT, data_out_1d,es_id);
+        status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out1d, NULL, count_out1d, NULL);
+        
+        status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,H5P_DEFAULT, data_out_1d,es_id);
 
 
         
@@ -251,13 +226,11 @@ main (int argc, char **argv)
         
         offset_out1d[0] = 5;    // select from 5 and add 5 elements
         count_out1d[0]  = 5;  
-        status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out1d, NULL, 
-                                    count_out1d, NULL);
+        status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out1d, NULL, count_out1d, NULL);
         
         
         
-        status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,
-                        H5P_DEFAULT, data_out_1d,es_id);
+        status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace, H5P_DEFAULT, data_out_1d,es_id);
         
         
         offset1d[0] = 10;   // select from 10 and add 5 elements
@@ -283,13 +256,11 @@ main (int argc, char **argv)
         
         offset_out1d[0] = 15;
         count_out1d[0]  = 5; // select from 15 and add 5 elements
-        status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out1d, NULL, 
-                                    count_out1d, NULL);
+        status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out1d, NULL, count_out1d, NULL);
         
         
         
-        status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,
-                        H5P_DEFAULT, data_out_1d,es_id);
+        status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,H5P_DEFAULT, data_out_1d,es_id);
 
         
         
@@ -300,13 +271,11 @@ main (int argc, char **argv)
         
         offset_out1d[0] = 20;
         count_out1d[0]  = 5; // select from 20 and add 5 elements
-        status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out1d, NULL, 
-                                    count_out1d, NULL);
+        status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out1d, NULL, count_out1d, NULL);
         
         
         
-        status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,
-                        H5P_DEFAULT, data_out_1d,es_id);
+        status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace, H5P_DEFAULT, data_out_1d,es_id);
     }
     
     
@@ -326,12 +295,8 @@ main (int argc, char **argv)
         count_out1d[0]  = 3;
         status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out1d, NULL, 
                                     count_out1d, NULL);
-        /*
-        * Read data from hyperslab in the file into the hyperslab in 
-        * memory and display.
-        */
-        status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,
-                        H5P_DEFAULT, data_out_1d,es_id);
+        
+        status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,H5P_DEFAULT, data_out_1d,es_id);
         
             
         
@@ -345,12 +310,8 @@ main (int argc, char **argv)
         count_out1d[0]  = 2;
         status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out1d, NULL, 
                                     count_out1d, NULL);
-        /*
-        * Read data from hyperslab in the file into the hyperslab in 
-        * memory and display.
-        */
-        status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,
-                        H5P_DEFAULT, data_out_1d,es_id);
+       
+        status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,H5P_DEFAULT, data_out_1d,es_id);
 
         
         
@@ -362,12 +323,8 @@ main (int argc, char **argv)
         count_out1d[0]  = 10;
         status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out1d, NULL, 
                                     count_out1d, NULL);
-        /*
-        * Read data from hyperslab in the file into the hyperslab in 
-        * memory and display.
-        */
-        status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,
-                        H5P_DEFAULT, data_out_1d,es_id);
+      
+        status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,H5P_DEFAULT, data_out_1d,es_id);
         
 
 
@@ -382,6 +339,7 @@ main (int argc, char **argv)
     if (print_dbg_msg)
         fprintf(stderr, "H5ESwait done\n");
 
+    
     if(mpi_rank==1){
     printf ("MPI rank=%d Data from rank 1:\n ",mpi_rank);
     printf("select from 0 and add 3 elements\n ");
@@ -401,6 +359,7 @@ main (int argc, char **argv)
         printf("select from 10 and add 5 elements\n ");
         printf("select from 15 and add 5 elements\n ");
         printf("select from 20 and add 5 elements\n ");
+       
         for (i = 0; i < N1; i++) printf("%d ", data_out_1d[i]);
         printf("\n");
     }
@@ -413,7 +372,7 @@ main (int argc, char **argv)
     status = H5Dclose_async(dataset, es_id);
     if (status < 0) {
         fprintf(stderr, "Closing dataset failed\n");
-        //ret = -1;
+        
     }
    
     H5Sclose (dataspace);
@@ -422,13 +381,13 @@ main (int argc, char **argv)
     status = H5Fclose_async(file1d, es_id);
     if (status < 0) {
         fprintf(stderr, "Closing file failed\n");
-        //ret = -1;
+       
     }
     
     status = H5ESwait(es_id, H5ES_WAIT_FOREVER, &num_in_progress, &op_failed);
     if (status < 0) {
         fprintf(stderr, "Error with H5ESwait\n");
-        //ret = -1;
+        
     }
 
     //1d close
