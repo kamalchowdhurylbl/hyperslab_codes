@@ -30,12 +30,14 @@ main(int argc, char *argv[])
     int     i, ret = 0;
     hsize_t ds_size[2] = {DIMLEN, DIMLEN};
     herr_t  status;
-    hid_t   async_fapl;
+    hid_t   async_fapl;  //file access property list
     hsize_t idx   = 0;
     int     nlink = 0;
 
-    async_fapl = H5Pcreate(H5P_FILE_ACCESS);
-    async_dxpl = H5Pcreate(H5P_DATASET_XFER);
+    async_fapl = H5Pcreate(H5P_FILE_ACCESS);// Asyncronous file access property list
+    //H5Pcreate creates a new property list as an instance of some property list class.
+
+    async_dxpl = H5Pcreate(H5P_DATASET_XFER);// Asyncronous Dataset transfer property list
 
     //    H5Pset_vol_async(async_fapl);
 
@@ -204,7 +206,7 @@ main(int argc, char *argv[])
         }
     }
     fprintf(stderr, "Finished verification\n");
-
+// W0, R0, W1, R1, W1', W0', R0', R1'
     uint64_t delay;
     if (H5Pget_dxpl_delay(async_dxpl, &delay) < 0) {
         fprintf(stderr, "Error with H5Pset_dxpl_delay\n");
@@ -375,7 +377,7 @@ main(int argc, char *argv[])
     if (print_dbg_msg)
         fprintf(stderr, "H5Literate_async start\n");
 
-    status = H5Literate_async(grp_id, H5_INDEX_NAME, H5_ITER_INC, &idx, link_iterate_cb, &nlink, es_id);
+    status = H5Literate_async(grp_id, H5_INDEX_NAME, H5_ITER_INC, &idx, link_iterate_cb, &nlink, es_id);//H5Literate_async=??
     if (status < 0) {
         fprintf(stderr, "Error with H5Literate\n");
         ret = -1;

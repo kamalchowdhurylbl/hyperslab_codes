@@ -10,7 +10,6 @@
 
 
 #define FILE        "sds.h5"
-#define FILE1D      "sds1d.h5"
 #define DATASETNAME "IntArray" 
 #define NX_SUB  3                      /* hyperslab dimensions */ 
 #define NY_SUB  5 
@@ -30,7 +29,7 @@ main (int argc, char **argv)
     hsize_t     dimsf1d; 
     int         data[X][Y];            /* data to write */
 
-    int data1d[10];
+    
 
     /* 
      * Data  and output buffer initialization. 
@@ -45,7 +44,7 @@ main (int argc, char **argv)
 
     int         data_out[NX][NY]; /* output buffer */
     int data_out1[X][Y];
-    int data_out1d[10];
+   
      
     hsize_t     count1d;              /* size of the hyperslab in the file */
     hsize_t    offset1d;             /* hyperslab offset in the file */
@@ -89,10 +88,7 @@ main (int argc, char **argv)
             /* 
             * Set up file access property list with parallel I/O access
             */
-           //1d data
            
-            for (i = 0; i < 10; i++)
-                data1d[i] = i;
               
         /*********************************************************  
          This writes data to the HDF5 file.  
@@ -122,7 +118,7 @@ main (int argc, char **argv)
             //file = H5Fcreate (FILE, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);  
             file = H5Fcreate_async (FILE, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT,es_id);  
             
-            file1d = H5Fcreate_async (FILE1D, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT,es_id);  
+            
             /*
             * Describe the size of the array and create the data space for fixed
             * size dataset. 
@@ -239,7 +235,7 @@ main (int argc, char **argv)
      */
     if(mpi_rank==0){
         offset[0] = 0;
-        offset[1] = 0; // offset=1x1
+        offset[1] = 0; // offset=0x0
         count[0]  = 3;
         count[1]  = 4; //count=3x4
         status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset, NULL, count, NULL);  

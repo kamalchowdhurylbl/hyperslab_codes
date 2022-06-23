@@ -295,7 +295,7 @@ main (int argc, char **argv)
         
         status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,
                         H5P_DEFAULT, data_out1,es_id);
-    //  offset from 0x0x4 and count 2x2x3  
+    //  offset from 0x0x4 and count 1x3x1  
         
         offset[0] = 0;  //offset=0x0x4
         offset[1] = 0;
@@ -354,29 +354,111 @@ main (int argc, char **argv)
         
     
         memspace = H5Screate_simple (RANK_OUT, dimsm, NULL);   //RANK_OUT=3
-    //offset from 3x0x0  to 0x0x0 and count 3x2x3 
+    //offset from 0x3x0  to 0x0x0 and count 3x3x2
         offset[0] = 0;
         offset[1] = 3;
         offset[2] = 0;    //offset=3x0x0
         count[0]  = 3;
-        count[1]  = 2;  //count=3x2x3
-        count[2]  = 3;
+        count[1]  = 3;  //count=3x3x2
+        count[2]  = 2;
         status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset, NULL, count, NULL);  
         
         offset_out[0] = 0;
-        offset_out[1] = 0; //offset_out=3x0x0
+        offset_out[1] = 0; //offset_out=0x0x0
         offset_out[2] = 0;
         count_out[0]  = 3;
-        count_out[1]  = 2;  //count_out=3x2x3
-        count_out[2]  = 3;
+        count_out[1]  = 3;  //count_out=3x3x2
+        count_out[2]  = 2;
         status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out, NULL, 
                                     count_out, NULL);
-        /*
-        * Read data from hyperslab in the file into the hyperslab in 
-        * memory and display.
-        */
+        
         status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,
                         H5P_DEFAULT, data_out2,es_id);
+        //offset from 0x3x2  to 0x0x2 and count 3x3x1 
+        offset[0] = 0;
+        offset[1] = 3;
+        offset[2] = 2;    //offset=0x3x2
+        count[0]  = 3;
+        count[1]  = 3;  //count=3x2x3
+        count[2]  = 1;
+        status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset, NULL, count, NULL);  
+        
+        offset_out[0] = 0;
+        offset_out[1] = 0; //offset_out=0x0x2
+        offset_out[2] = 2;
+        count_out[0]  = 3;
+        count_out[1]  = 3;  //count_out=3x3x1 
+        count_out[2]  = 1;
+        status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out, NULL, 
+                                    count_out, NULL);
+        
+        status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,
+                        H5P_DEFAULT, data_out2,es_id);
+        
+    //offset from 0x3x3  to 0x0x3 and count 3x3x1 
+        offset[0] = 0;
+        offset[1] = 3;
+        offset[2] = 3;    //offset=0x3x3
+        count[0]  = 3;
+        count[1]  = 3;  //count=3x3x1 
+        count[2]  = 1;
+        status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset, NULL, count, NULL);  
+        
+        offset_out[0] = 0;
+        offset_out[1] = 0; //offset_out=0x0x3
+        offset_out[2] = 3;
+        count_out[0]  = 3;
+        count_out[1]  = 3;  //count_out=3x3x1 
+        count_out[2]  = 1;
+        status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out, NULL, 
+                                    count_out, NULL);
+        
+        status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,
+                        H5P_DEFAULT, data_out2,es_id);
+        
+    //offset from 0x3x4  to 0x0x4 and count 3x3x1 
+        offset[0] = 0;
+        offset[1] = 3;
+        offset[2] = 4;    //offset=0x3x4
+        count[0]  = 3;
+        count[1]  = 3;  //count=3x3x1 
+        count[2]  = 1;
+        status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset, NULL, count, NULL);  
+        
+        offset_out[0] = 0;
+        offset_out[1] = 0; //offset_out=0x0x4
+        offset_out[2] = 4;
+        count_out[0]  = 3;
+        count_out[1]  = 3;  //count_out=3x3x1 
+        count_out[2]  = 1;
+        status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out, NULL, 
+                                    count_out, NULL);
+        
+        status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,
+                        H5P_DEFAULT, data_out2,es_id);
+        
+    //offset from 0x3x5  to 0x0x5 and count 3x3x1 
+        offset[0] = 0;
+        offset[1] = 3;
+        offset[2] = 5;    //offset=0x3x5
+        count[0]  = 3;
+        count[1]  = 3;  //count=3x3x1 
+        count[2]  = 1;
+        status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset, NULL, count, NULL);  
+        
+        offset_out[0] = 0;
+        offset_out[1] = 0; //offset_out=0x0x5
+        offset_out[2] = 5;
+        count_out[0]  = 3;
+        count_out[1]  = 3;  //count_out=3x3x1 
+        count_out[2]  = 1;
+        status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out, NULL, 
+                                    count_out, NULL);
+        
+        status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,
+                        H5P_DEFAULT, data_out2,es_id);
+        
+    
         
 
 
@@ -393,19 +475,18 @@ main (int argc, char **argv)
 
     if(mpi_rank==1){
     printf ("MPI rank=%d Data from rank 1:\n ",mpi_rank);
-    printf("offset from 3x0x0 to 0x0x0 and count 3x2x3 \n ");
-    printf("offset from 3x2x0 to 0x2x0 and count 3x1x3 \n ");
-    printf("offset from 3x3x0 to 0x3x0 and count 3x1x3 \n ");
-    printf("offset from 3x4x0 to 0x4x0 and count 3x1x3 \n ");
-    printf("offset from 3x5x0 to 0x5x0 and count 3x1x3 \n ");
-    printf("offset from the 3x3x0  to 0x3x0 and count 2x2x1\n");
+    printf("offset from 0x3x0  to 0x0x0 and count 3x3x2 \n ");
+    printf("offset from 0x3x2  to 0x0x2 and count 3x3x1 \n ");
+    printf("offset from 0x3x3  to 0x0x3 and count 3x3x1 \n ");
+    printf("offset from 0x3x4  to 0x0x4 and count 3x3x1 \n ");
+    printf("offset from 0x3x5  to 0x0x5 and count 3x3x1 \n ");
     for(k=0;k<Z2;k++){
                 printf ("\nFirst 3D Data Z=%d:\n ",k);
                 
                 
                 for (i = 0; i < X2; i++){ 
                     for (j = 0; j < Y2; j++) 
-                        printf("%5d", data_out1[k][i][j]);
+                        printf("%5d", data_out2[k][i][j]);
                 printf("\n ");
                 }
             } 
@@ -414,10 +495,10 @@ main (int argc, char **argv)
     MPI_Barrier(comm);
     if(mpi_rank==0){
         printf ("MPI rank=%d Data from rank 0:\n ",mpi_rank);
-        printf("offset from 0x0x0 and count 2x2x3\n ");
-        printf("offset from 0x2x0 and count 2x2x3  \n");
-        printf("offset from 0x4x0 and count 2x2x3  \n");
-        printf("offset from 2x0x0 and count 6x1x3 \n");
+        printf("offset from 0x0x0 and count 1x3x3\n ");
+        printf("offset from 0x0x3 and count 1x3x1 \n");
+        printf("offset from 0x0x4 and count 1x3x1  \n");
+        printf("offset from 0x0x5 and count 1x3x1 \n");
 
         for(k=0;k<Z1;k++){
                 printf ("\nFirst 3D Data Z=%d:\n ",k);

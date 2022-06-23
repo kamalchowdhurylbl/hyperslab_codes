@@ -94,15 +94,11 @@ main (int argc, char **argv)
                     l++;}
                 
             
-    
+   
         
         //3d operations
         
         file = H5Fcreate_async (FILE, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT,es_id);  
-        /*
-        * Describe the size of the array and create the data space for fixed
-        * size dataset. 
-        */
         
 
         dimsf[0]=X;
@@ -110,10 +106,7 @@ main (int argc, char **argv)
         
         dataspace = H5Screate_simple (RANK, dimsf, NULL); 
         
-        /*
-        * Create a new dataset within the file using defined dataspace and
-        * default dataset creation properties.
-        */
+        
         dataset = H5Dcreate_async (file, DATASETNAME, H5T_STD_I32BE, dataspace,
                             H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT,es_id);   //H5T_STD_I32BE = 32-bit big-endian signed integers
 
@@ -146,9 +139,7 @@ main (int argc, char **argv)
                     printf("\n ");
             }
         fflush(stdout);
-        /*
-        * Close/release resources.
-        */
+       
         H5Sclose (dataspace);
         status = H5Dclose_async(dataset, es_id);
         if (status < 0) {
@@ -170,6 +161,8 @@ main (int argc, char **argv)
         
         
     }
+
+    MPI_Barrier(comm);
  /*************************************************************  
 
   This reads the hyperslab from the sds.h5 file just 
@@ -181,7 +174,7 @@ main (int argc, char **argv)
   //for 2d data
 
     
-     
+    
    
     for (i = 0; i < X1; i++) {
         for (j = 0; j < Y1; j++) {
@@ -200,19 +193,18 @@ main (int argc, char **argv)
         }
     }
             
-    /*
-     * Open the file and the dataset.
-     */
-    file = H5Fopen_async (FILE, H5F_ACC_RDONLY, mpio_plist_id,es_id); //H5F_ACC_RDONLY= An existing file is opened with read-only access. 
-                                                        //If the file does not exist, H5Fopen fails. (Default)
-    dataset = H5Dopen_async(file, DATASETNAME,H5P_DEFAULT,es_id);  //#define DATASETNAME "IntArray" 
-
-    dataspace = H5Dget_space_async (dataset,es_id);    //dataspace handle 
-    rank      = H5Sget_simple_extent_ndims (dataspace);
-    status_n  = H5Sget_simple_extent_dims (dataspace, dims_out, NULL);
    
+    file = H5Fopen_async (FILE, H5F_ACC_RDONLY, mpio_plist_id,es_id); //H5F_ACC_RDONLY= An existing file is opened with read-only access. 
+    //fprintf(stderr,"file is open\n");                                                    //If the file does not exist, H5Fopen fails. (Default)
+    dataset = H5Dopen_async(file, DATASETNAME,H5P_DEFAULT,es_id);  //#define DATASETNAME "IntArray" 
+    fprintf(stderr,"dataset is open\n");
+    dataspace = H5Dget_space(dataset);    //dataspace handle 
+    //dataspace = H5Dget_space_async (dataset,es_id); 
+    rank      = H5Sget_simple_extent_ndims (dataspace);
+    status_n  = H5Sget_simple_extent_dims (dataspace, dims_out, NULL); 
+   //fprintf(stderr,"dataspace is open\n");
 
-
+   
     
     /* 
      * Define hyperslab in the dataset. 
@@ -227,7 +219,8 @@ main (int argc, char **argv)
      *24   25   26   27   28   29
      *30   31   32   33   34   35
      */
-    if(mpi_rank==0){
+   
+   if(mpi_rank==0){
         
         dimsm[0] = X1;
         dimsm[1] = Y1;
@@ -253,7 +246,7 @@ main (int argc, char **argv)
         
         status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,H5P_DEFAULT, data_out1,es_id);
 
-        // offset from 0x3 and count 3x1
+       // offset from 0x3 and count 3x1
         offset[0] = 0;
         offset[1]=3;  // select=0x0
         count[0]  = 3;
@@ -306,8 +299,11 @@ main (int argc, char **argv)
         
         
         status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace, H5P_DEFAULT, data_out1,es_id);
+         
     
     }
+        
+         
     
     
    if(mpi_rank==1){
@@ -411,7 +407,7 @@ main (int argc, char **argv)
         
         status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace,H5P_DEFAULT, data_out2,es_id);
 
-        
+         
    } 
 
     status = H5ESwait(es_id, H5ES_WAIT_FOREVER, &num_in_progress, &op_failed);
@@ -444,10 +440,10 @@ main (int argc, char **argv)
         printf("\n ");
         }
     } 
-    printf("Before MPI barrier \n");
-    MPI_Barrier(comm);
-    printf("After MPI barrier \n");
-
+    //printf("Before MPI barrier \n");
+    //MPI_Barrier(comm);
+   // printf("After MPI barrier \n");
+ 
    
     if(mpi_rank==0){
         printf ("MPI rank=%d Data from rank 0:\n ",mpi_rank);
@@ -470,29 +466,31 @@ main (int argc, char **argv)
     
     
    
-    H5Sclose (dataspace);
-    H5Sclose (memspace);
-
-    status = H5Dclose_async(dataset, es_id);
     
-    if (status < 0) {
-        fprintf(stderr, "Closing dataset failed\n");
-        
-    }
+
    
+    H5Sclose (memspace);
+   //fprintf(stderr,"before dataspace close\n");
+    H5Sclose (dataspace);
     
-
+    status = H5Dclose_async(dataset, es_id);
+    if (status < 0) {
+            fprintf(stderr, "Closing dataset failed\n");
+            
+        }
+    //fprintf(stderr,"dataset close\n");
     status = H5Fclose_async(file, es_id);
     if (status < 0) {
         fprintf(stderr, "Closing file failed\n");
         
     }
-    
+    fprintf(stderr,"file close\n");
     status = H5ESwait(es_id, H5ES_WAIT_FOREVER, &num_in_progress, &op_failed);
     if (status < 0) {
         fprintf(stderr, "Error with H5ESwait\n");
-        
-    }
+        //ret = -1;
+    } 
+    
 
     //1d close
    
@@ -502,7 +500,7 @@ main (int argc, char **argv)
         //ret = -1;
     }
     H5Pclose(mpio_plist_id);
-    MPI_Barrier(comm);
+    //MPI_Barrier(comm);
     MPI_Finalize();
 
     return 0;

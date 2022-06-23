@@ -303,12 +303,19 @@ main (int argc, char **argv)
     }
     if (print_dbg_msg)
         fprintf(stderr, "H5ESwait done\n");
-    
-        MPI_Barrier(comm);
+    fflush(stdout);
+
+    MPI_Barrier(comm);
 
     if(mpi_rank==0){
         status = H5Dread_async (dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data_out,es_id);
-
+    
+    
+        status = H5ESwait(es_id, H5ES_WAIT_FOREVER, &num_in_progress, &op_failed);
+        if (status < 0) {
+            fprintf(stderr, "Error with H5ESwait\n");
+            
+        }
         printf("\nData out from the file\n");
         for(k=0;k<Z;k++){
             printf ("\n 3D Data Z=%d:\n ",k);
