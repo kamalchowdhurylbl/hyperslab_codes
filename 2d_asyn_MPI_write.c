@@ -3,7 +3,6 @@
   This example shows how to write and read a hyperslab.  It 
   is derived from the h5_read.c and h5_write.c examples in 
   the "Introduction to HDF5". It works on the 3 dimensional data.
-
  ************************************************************/
  
 #include "hdf5.h"
@@ -279,7 +278,11 @@ main (int argc, char **argv)
 
         printf("\nData out from the file\n");
         
+        status = H5ESwait(es_id, H5ES_WAIT_FOREVER, &num_in_progress, &op_failed);
+        if (status < 0) {
+            fprintf(stderr, "Error with H5ESwait\n");
             
+        }
         
         for (i = 0; i < X; i++){ 
             for (j = 0; j < Y; j++) 
