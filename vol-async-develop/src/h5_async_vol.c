@@ -9040,11 +9040,148 @@ is_contig_memspace(hid_t memspace)
 }
 #endif
 
+int print_dataspace(hid_t mem_space_id){
+    int ndim; 
+    int num_elements;
+    hsize_t      nblocks;
+    int N1=20;
+    hsize_t     dimsm[1];  
+    hsize_t *buffer;
+    
+    H5S_sel_type type;
+    herr_t slected_block;
+    hssize_t numblocks;
+    async_dataset_write_args_t *args        = NULL;
+
+    hsize_t      *start_out,
+                *stride_out,
+                *count_out,
+                *block_out;
+    hsize_t      start_out3[3],
+                stride_out3[3],
+                count_out3[3],
+                block_out3[3];
+    herr_t       status;
+    async_task_t *task_iter;
+    async_task_list_t *task_list_iter;
+
+    if (mem_space_id == H5S_SEL_ALL)
+            fprintf(stderr,"-----H5S_SEL_ALL----\n");
+        else if(mem_space_id == H5S_SEL_NONE) {
+            fprintf(stderr,"-----H5S_SEL_NONE----\n");
+        return 0;
+        } 
+
+        type = H5Sget_select_type(mem_space_id);
+    /*  if(type==H5S_SEL_ERROR)
+            fprintf(stderr,"-----Error----\n");
+        else if(type==H5S_SEL_NONE)
+            fprintf(stderr,"-----Empty selection-----\n");
+        else if(type==H5S_SEL_POINTS)
+            fprintf(stderr,"-----Set of points-----\n");
+        else if(type==H5S_SEL_HYPERSLABS)
+            fprintf(stderr,"-----Hyperslab-----\n");
+
+        else if(type==H5S_SEL_ALL)
+            fprintf(stderr,"-----Everything-----\n");
+        else if(type==H5S_SEL_N)
+            fprintf(stderr,"-----Sentinel-----cd\n");
+                */
+
+        //fprintf(stderr,"this is after H5Sget_select_type %d\n",type);
+        if (type == H5S_SEL_POINTS) {
+            return 0;
+        }
+        else if (type == H5S_SEL_HYPERSLABS) {
+            ndim = H5Sget_simple_extent_ndims(mem_space_id);
+            //fprintf(stderr, "ndim=%d\n",ndim);
+            //if (ndim != 1)
+            //  return 0;
+            
+            if (H5Sis_regular_hyperslab(mem_space_id)) {
+                start_out=malloc(ndim*sizeof(hsize_t));
+                stride_out=malloc(ndim*sizeof(hsize_t));
+                count_out=malloc(ndim*sizeof(hsize_t));
+                block_out=malloc(ndim*sizeof(hsize_t));
+                status = H5Sget_regular_hyperslab (mem_space_id, start_out, stride_out, count_out, block_out);
+                if( ndim==1){
+                    
+
+                    fprintf(stderr, "         start  = [%llu] \n", (unsigned long long)start_out[0]);
+                    fprintf(stderr, "         stride = [%llu] \n", (unsigned long long)stride_out[0]);
+                    fprintf(stderr, "         count  = [%llu] \n", (unsigned long long)count_out[0]);
+                    fprintf(stderr, "         block  = [%llu] \n", (unsigned long long)block_out[0]);
+                    //fprintf(stderr, "Hyperslab operation on dataspace using start=%llu and count=%llu\n",start_out[0],count_out[0]);
+                    //fflush(stdout);
+
+
+                }
+                else if (ndim==2){
+
+                    fprintf(stderr, "         start  = [%llu, %llu] \n", (unsigned long long)start_out[0], (unsigned long long)start_out[1]);
+                    fprintf(stderr, "         stride = [%llu, %llu] \n", (unsigned long long)stride_out[0], (unsigned long long)stride_out[1]);
+                    fprintf(stderr, "         count  = [%llu, %llu] \n", (unsigned long long)count_out[0], (unsigned long long)count_out[1]);
+                    fprintf(stderr, "         block  = [%llu, %llu] \n", (unsigned long long)block_out[0], (unsigned long long)block_out[1]);
+                }
+                else if(ndim==3){
+
+                    fprintf(stderr, "         start  = [%llu, %llu, %llu] \n", (unsigned long long)start_out[0], (unsigned long long)start_out[1], (unsigned long long)start_out[2]);
+                    fprintf(stderr, "         stride = [%llu, %llu, %llu] \n", (unsigned long long)stride_out[0], (unsigned long long)stride_out[1], (unsigned long long)stride_out[2]);
+                    fprintf(stderr, "         count  = [%llu, %llu, %llu] \n", (unsigned long long)count_out[0], (unsigned long long)count_out[1], (unsigned long long)count_out[2]);
+                    fprintf(stderr, "         block  = [%llu, %llu, %llu] \n", (unsigned long long)block_out[0], (unsigned long long)block_out[1], (unsigned long long)block_out[2]);
+                }
+
+                free(start_out);
+                free(stride_out);
+                free(count_out);
+                free(block_out);
+
+            }
+            else{
+
+                nblocks = H5Sget_select_hyper_nblocks(mem_space_id);
+                num_elements=nblocks* ndim*2;
+                buffer = (hsize_t *) malloc(num_elements*sizeof(hsize_t));
+            
+                slected_block=H5Sget_select_hyper_blocklist(mem_space_id,(hsize_t) 0,nblocks,buffer);
+                if(ndim==1)
+                    {
+                    //for(int i=0;i<num_elements;i++)
+                    //  fprintf(stderr,"buffer[%d]= %llu\n",i,buffer[i]); 
+                    fprintf(stderr, "Hyperslab operation on dataspace using offset=%llu and count=%llu\n",buffer[0],buffer[num_elements-1]-buffer[0]+1);
+                    }
+                
+                else if(ndim==2)
+                {
+                    //for(int i=0;i<num_elements;i++)
+                    //  fprintf(stderr,"buffer[%d]= %llu\n",i,buffer[i]); 
+                    fprintf(stderr, "Hyperslab operation on dataspace using offset=%llux%llu and count=%llux%llu\n",buffer[0],buffer[1],buffer[num_elements-2]-buffer[0]+1,buffer[num_elements-1]-buffer[1]+1);
+
+                }
+                else if(ndim==3){
+                    //for(int i=0;i<num_elements;i++)
+                        //    fprintf(stderr,"buffer[%d]= %llu\n",i,buffer[i]); 
+                    fprintf(stderr, "Hyperslab operation on dataspace using offset=%llux%llux%llu and count=%llux%llux%llu\n",buffer[0],buffer[1],buffer[2],buffer[num_elements-3]-buffer[0]+1,buffer[num_elements-2]-buffer[1]+1,buffer[num_elements-1]-buffer[2]+1);
+                
+
+                } 
+                free(buffer);
+
+            }
+            
+
+        }
+
+return 1;
+
+}
+
 static herr_t 
 async_dataset_write_merge(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t mem_type_id, hid_t mem_space_id,
                      hid_t plist_id, const void *buf)
 {   
     int ndim; 
+    int num_elements;
     hsize_t      nblocks;
     int N1=20;
     hsize_t     dimsm[1];  
@@ -9054,17 +9191,21 @@ async_dataset_write_merge(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t
     herr_t slected_block;
     hssize_t numblocks;
     async_dataset_write_args_t *args        = NULL;
+    async_dataset_write_args_t *iter_args;
 
-    hsize_t      start_out[2],
-                stride_out[2],
-                count_out[2],
-                block_out[2];
+    hsize_t      *start_out,
+                *stride_out,
+                *count_out,
+                *block_out;
     hsize_t      start_out3[3],
                 stride_out3[3],
                 count_out3[3],
                 block_out3[3];
     herr_t       status;
+    async_task_t *task_iter;
+    async_task_list_t *task_list_iter;
 
+    
     assert(aid);
     assert(parent_obj);
     assert(parent_obj->magic == ASYNC_MAGIC);
@@ -9072,102 +9213,8 @@ async_dataset_write_merge(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t
 
     //fprintf(stderr,"this is before H5Sget_select_type\n");
 
-    if (mem_space_id == H5S_SEL_ALL)
-        fprintf(stderr,"-----H5S_SEL_ALL----\n");
-    else if(mem_space_id == H5S_SEL_NONE) {
-        fprintf(stderr,"-----H5S_SEL_NONE----\n");
-       return 0;
-    } 
-
-    type = H5Sget_select_type(mem_space_id);
-   /*  if(type==H5S_SEL_ERROR)
-        fprintf(stderr,"-----Error----\n");
-    else if(type==H5S_SEL_NONE)
-        fprintf(stderr,"-----Empty selection-----\n");
-    else if(type==H5S_SEL_POINTS)
-        fprintf(stderr,"-----Set of points-----\n");
-    else if(type==H5S_SEL_HYPERSLABS)
-        fprintf(stderr,"-----Hyperslab-----\n");
-
-    else if(type==H5S_SEL_ALL)
-        fprintf(stderr,"-----Everything-----\n");
-    else if(type==H5S_SEL_N)
-        fprintf(stderr,"-----Sentinel-----cd\n");
-        	 */
-
-    //fprintf(stderr,"this is after H5Sget_select_type %d\n",type);
-    if (type == H5S_SEL_POINTS) {
-        return 0;
-    }
-    else if (type == H5S_SEL_HYPERSLABS) {
-        ndim = H5Sget_simple_extent_ndims(mem_space_id);
-        //fprintf(stderr, "ndim=%d\n",ndim);
-        //if (ndim != 1)
-          //  return 0;
-       
-
-        nblocks = H5Sget_select_hyper_nblocks(mem_space_id);
-        int num_elements=nblocks* ndim*2;
-        buffer = (hsize_t *) malloc(num_elements*sizeof(hsize_t));
-       
-        slected_block=H5Sget_select_hyper_blocklist(mem_space_id,(hsize_t) 0,nblocks,buffer);
-        //if (nblocks == 1)
-          //  return 1;
-       // return 0;
-       if(ndim==1){
-           //for(int i=0;i<nblocks;i++){
-            fprintf(stderr, "nblocks=%llu\n",nblocks);
-            //int count=buffer[2];
-            /* for(int i=0;i<num_elements;i++)
-                fprintf(stderr,"buffer[%d]= %llu\n",i,buffer[i]); */
-            //fprintf(stderr,"buffer[0]=%llu buffer[1]=%llu",buffer[0],buffer[4]);
-            fprintf(stderr, "Hyperslab operation on dataspace using offset=%llu and count=%llu\n",buffer[0],buffer[num_elements-1]-buffer[0]+1);
-
-           
-            //i++;
-            //fprintf(stderr, "offset[%d]=%llu count[%d]=%llu\n",i,buffer[2*i],2*i,buffer[2*i+1]-buffer[2*i]);
-          // }
-            free(buffer);
-
-        }
-        else if(ndim==2){
-            //
-            fprintf(stderr, "nblocks=%llu\n",nblocks);
-            //int count=buffer[2];
-            /* for(int i=0;i<num_elements;i++)
-                fprintf(stderr,"buffer[%d]= %llu\n",i,buffer[i]);  */
-            //fprintf(stderr,"buffer[0]=%llu buffer[1]=%llu",buffer[0],buffer[4]);
-            fprintf(stderr, "Hyperslab operation on dataspace using offset=%llux%llu and count=%llux%llu\n",buffer[0],buffer[1],buffer[num_elements-2]-buffer[0]+1,buffer[num_elements-1]-buffer[1]+1);
-            
-            free(buffer);
-            /* if (H5Sis_regular_hyperslab(mem_space_id)) {
-            status = H5Sget_regular_hyperslab (mem_space_id, start_out, stride_out, count_out, block_out);
-                printf("         start  = [%llu, %llu] \n", (unsigned long long)start_out[0], (unsigned long long)start_out[1]);
-                printf("         stride = [%llu, %llu] \n", (unsigned long long)stride_out[0], (unsigned long long)stride_out[1]);
-                printf("         count  = [%llu, %llu] \n", (unsigned long long)count_out[0], (unsigned long long)count_out[1]);
-                printf("         block  = [%llu, %llu] \n", (unsigned long long)block_out[0], (unsigned long long)block_out[1]);
-             } */
-        }
-        else if(ndim==3){
-            //
-            fprintf(stderr, "nblocks=%llu\n",nblocks);
-            //int count=buffer[2];
-            /* for(int i=0;i<num_elements;i++)
-                fprintf(stderr,"buffer[%d]= %llu\n",i,buffer[i]);  */
-            //fprintf(stderr,"buffer[0]=%llu buffer[1]=%llu",buffer[0],buffer[4]);
-            fprintf(stderr, "Hyperslab operation on dataspace using offset=%llux%llux%llu and count=%llux%llux%llu\n",buffer[0],buffer[1],buffer[2],buffer[num_elements-3]-buffer[0]+1,buffer[num_elements-2]-buffer[1]+1,buffer[num_elements-1]-buffer[2]+1);
-            
-            free(buffer);
-           /*  if (H5Sis_regular_hyperslab(mem_space_id)) {
-            status = H5Sget_regular_hyperslab (mem_space_id, start_out3, stride_out3, count_out3, block_out3);
-                printf("         start  = [%llu, %llu, %llu] \n", (unsigned long long)start_out3[0], (unsigned long long)start_out3[1], (unsigned long long)start_out3[2]);
-                printf("         stride = [%llu, %llu, %llu] \n", (unsigned long long)stride_out3[0], (unsigned long long)stride_out3[1], (unsigned long long)stride_out3[2]);
-                printf("         count  = [%llu, %llu, %llu] \n", (unsigned long long)count_out3[0], (unsigned long long)count_out3[1], (unsigned long long)count_out3[2]);
-                printf("         block  = [%llu, %llu, %llu] \n", (unsigned long long)block_out3[0], (unsigned long long)block_out3[1], (unsigned long long)block_out3[2]);
-             }  */
-        }
-
-    }
+     //print_dataspace(mem_space_id);
+    
     /*if(type==H5S_SEL_HYPERSLABS)
         fprintf(stderr,"A hyperslab or compound hyperslab is selected\n");
     else if(type==H5S_SEL_POINTS)
@@ -9190,8 +9237,35 @@ async_dataset_write_merge(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t
     //#define DL_FOREACH	(head,el)
       //  for(el=head;el;el=el->next)
 
+   // task->async_obj->file_task_list_head,
+    
+    DL_FOREACH(async_instance_g->qhead.queue,task_list_iter){
+        DL_FOREACH(task_list_iter->task_list, task_iter){
+            if(task_iter->func==async_dataset_write_fn){
+                if(task_iter->parent_obj == parent_obj){
 
-    //DL_FOREACH(aid->qhead,task_iter);
+                    iter_args = task_iter->args;
+                    
+    
+
+                     fprintf(stderr,"%lld   %lld  %lld\n",task_iter->async_obj->under_object,iter_args->mem_space_id,iter_args->file_space_id);
+                     fprintf(stderr,"For memory space:\n");
+                     print_dataspace(iter_args->mem_space_id);
+                     fprintf(stderr,"For file space:\n");
+                     print_dataspace(iter_args->file_space_id);
+
+                     }
+            }
+
+       
+        }
+    }  
+
+    /* async_dataset_write_args_t
+    dset
+    mem_space_id
+    file_space_id */
+
 
    // args->dset = parent_obj->under_object;
 
