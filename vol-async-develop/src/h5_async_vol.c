@@ -9057,10 +9057,7 @@ int print_dataspace(hid_t mem_space_id){
                 *stride_out,
                 *count_out,
                 *block_out;
-    hsize_t      start_out3[3],
-                stride_out3[3],
-                count_out3[3],
-                block_out3[3];
+    
     herr_t       status;
     async_task_t *task_iter;
     async_task_list_t *task_list_iter;
@@ -9073,6 +9070,8 @@ int print_dataspace(hid_t mem_space_id){
         } 
 
         type = H5Sget_select_type(mem_space_id);
+
+        
     /*  if(type==H5S_SEL_ERROR)
             fprintf(stderr,"-----Error----\n");
         else if(type==H5S_SEL_NONE)
@@ -9103,10 +9102,10 @@ int print_dataspace(hid_t mem_space_id){
                 stride_out=malloc(ndim*sizeof(hsize_t));
                 count_out=malloc(ndim*sizeof(hsize_t));
                 block_out=malloc(ndim*sizeof(hsize_t));
+                
                 status = H5Sget_regular_hyperslab (mem_space_id, start_out, stride_out, count_out, block_out);
                 if( ndim==1){
                     
-
                     fprintf(stderr, "         start  = [%llu] \n", (unsigned long long)start_out[0]);
                     fprintf(stderr, "         stride = [%llu] \n", (unsigned long long)stride_out[0]);
                     fprintf(stderr, "         count  = [%llu] \n", (unsigned long long)count_out[0]);
@@ -9176,9 +9175,202 @@ return 1;
 
 }
 
+int check_contagious(hid_t current_task_space_id, hid_t task_iterator_file_space_id,hsize_t *start, hsize_t *count){
+    
+    int ndim; 
+    int num_elements;
+    hsize_t      nblocks;
+    int N1=20;
+    hsize_t     dimsm[1];  
+    hsize_t *buffer;
+    hid_t memspace,dataspace;
+    H5S_sel_type type;
+    herr_t slected_block;
+    hssize_t numblocks;
+    async_dataset_write_args_t *args        = NULL;
+    async_dataset_write_args_t *iter_args=NULL;
+
+    hsize_t      *current_task_start_out,
+                *current_task_stride_out,
+                *current_task_count_out,
+                *current_task_block_out;
+    hsize_t      *iterator_task_start_out,
+                *iterator_task_stride_out,
+                *iterator_task_count_out,
+                *iterator_task_block_out;
+    herr_t       status;
+
+    H5S_sel_type current_task_type,iterator_task_type;
+    
+    
+    
+    current_task_type = H5Sget_select_type(current_task_space_id);
+    iterator_task_type = H5Sget_select_type(task_iterator_file_space_id);
+    
+    if (current_task_type == H5S_SEL_HYPERSLABS) {
+            ndim = H5Sget_simple_extent_ndims(current_task_space_id);
+            
+            
+            if (H5Sis_regular_hyperslab(current_task_space_id)) {
+                current_task_start_out=malloc(ndim*sizeof(hsize_t));
+                current_task_stride_out=malloc(ndim*sizeof(hsize_t));
+                current_task_count_out=malloc(ndim*sizeof(hsize_t));
+                current_task_block_out=malloc(ndim*sizeof(hsize_t));
+                
+
+                iterator_task_start_out=malloc(ndim*sizeof(hsize_t));
+                iterator_task_stride_out=malloc(ndim*sizeof(hsize_t));
+                iterator_task_count_out=malloc(ndim*sizeof(hsize_t));
+                iterator_task_block_out=malloc(ndim*sizeof(hsize_t));
+
+                
+                
+
+                
+                status = H5Sget_regular_hyperslab (current_task_space_id, current_task_start_out, current_task_stride_out, current_task_count_out, current_task_block_out);
+                status = H5Sget_regular_hyperslab (task_iterator_file_space_id, iterator_task_start_out, iterator_task_stride_out, iterator_task_count_out, iterator_task_block_out);
+                if( ndim==1){
+                    
+                   /*  fprintf(stderr, "         current_task_start  = [%llu] \n", (unsigned long long)current_task_start_out[0]);
+                    fprintf(stderr, "         current_task_stride = [%llu] \n", (unsigned long long)current_task_stride_out[0]);
+                    fprintf(stderr, "         current_task_count  = [%llu] \n", (unsigned long long)current_task_count_out[0]);
+                    fprintf(stderr, "         current_task_block  = [%llu] \n", (unsigned long long)current_task_block_out[0]);
+                    
+                    fprintf(stderr, "         iterator_task_start  = [%llu] \n", (unsigned long long)iterator_task_start_out[0]);
+                    fprintf(stderr, "         iterator_task_stride = [%llu] \n", (unsigned long long)iterator_task_stride_out[0]);
+                    fprintf(stderr, "         iterator_task_count  = [%llu] \n", (unsigned long long)iterator_task_count_out[0]);
+                    fprintf(stderr, "         iterator_task_block  = [%llu] \n", (unsigned long long)iterator_task_block_out[0]);
+                     */
+                    
+                    if(current_task_start_out[0]==iterator_task_start_out[0]+iterator_task_count_out[0])
+                       //fprintf(stderr,"current task start index [%lld] is  contagious to iterator task start=[%lld] and count=[%lld] are contagious",current_task_start_out[0],iterator_task_start_out[0],iterator_task_count_out[0]);
+                       {    start[0]=iterator_task_start_out[0];
+                           count[0]=current_task_start_out[0]+current_task_count_out[0];
+                           //fprintf(stderr,"start=%llu and count=%llu\n",iterator_task_start_out[0],current_task_start_out[0]+current_task_count_out[0]);
+                            
+                           return 1;
+                       
+                       
+                       }
+                    else
+                        return 0;
+
+                }
+                else if( ndim==2){
+                    
+                   /*  fprintf(stderr, "         current_task_start  = [%llux%llu] \n", (unsigned long long)current_task_start_out[0],(unsigned long long)current_task_start_out[1]);
+                    fprintf(stderr, "         current_task_stride = [%llux%llu] \n", (unsigned long long)current_task_stride_out[0],(unsigned long long)current_task_stride_out[1]);
+                    fprintf(stderr, "         current_task_count  = [%llux%llu] \n", (unsigned long long)current_task_count_out[0],(unsigned long long)current_task_count_out[1]);
+                    fprintf(stderr, "         current_task_block  = [%llux%llu] \n", (unsigned long long)current_task_block_out[0],(unsigned long long)current_task_block_out[1]);
+                    
+                    fprintf(stderr, "         iterator_task_start  = [%llux%llu] \n", (unsigned long long)iterator_task_start_out[0],(unsigned long long)iterator_task_start_out[1]);
+                    fprintf(stderr, "         iterator_task_stride = [%llux%llu] \n", (unsigned long long)iterator_task_stride_out[0],(unsigned long long)iterator_task_stride_out[1]);
+                    fprintf(stderr, "         iterator_task_count  = [%llux%llu] \n", (unsigned long long)iterator_task_count_out[0],(unsigned long long)iterator_task_count_out[1]);
+                    fprintf(stderr, "         iterator_task_block  = [%llux%llu] \n", (unsigned long long)iterator_task_block_out[0],(unsigned long long)iterator_task_block_out[1]);
+                     */
+                    if(current_task_start_out[0]==iterator_task_start_out[0]){
+                        if((current_task_start_out[1]==iterator_task_start_out[1]+iterator_task_count_out[1])&&(current_task_count_out[0]==iterator_task_count_out[0]))
+                       //fprintf(stderr,"current task start index [%lld] is  contagious to iterator task start=[%lld] and count=[%lld] are contagious",current_task_start_out[0],iterator_task_start_out[0],iterator_task_count_out[0]);
+                        {   start[0]=iterator_task_start_out[0];
+                            start[1]=iterator_task_start_out[1];
+                            count[0]=iterator_task_count_out[0];
+                            count[1]=current_task_count_out[1]+iterator_task_count_out[1];
+                            //fprintf(stderr,"start=%llux%llu and count=%llux%llu\n",iterator_task_start_out[0],iterator_task_start_out[1],iterator_task_count_out[0],current_task_count_out[1]+iterator_task_count_out[1]);
+                           
+                            return 1;
+                        
+                        }
+                    else
+                        return 0;
+                    }
+                    else if(current_task_start_out[1]==iterator_task_start_out[1]){
+                           if((current_task_start_out[0]==iterator_task_start_out[0]+iterator_task_count_out[0])&&(current_task_count_out[1]==iterator_task_count_out[1]))
+                                {
+                                    start[0]=iterator_task_start_out[0];
+                                    start[1]=iterator_task_start_out[1];
+                                    count[0]=current_task_count_out[0]+iterator_task_count_out[0];
+                                    count[1]=iterator_task_count_out[1];
+                                    //fprintf(stderr,"start=%llux%llu and count=%llux%llu\n",iterator_task_start_out[0],iterator_task_start_out[1],current_task_count_out[0]+iterator_task_count_out[0],iterator_task_count_out[1]);
+                           
+                                    return 1;
+                                    }
+                            else
+                                return 0;
+
+                    }
+                    else 
+                    {
+                        return 0;
+                            }
+                    
+
+                }
+                else if( ndim==3){
+                    
+                   /*  fprintf(stderr, "         current_task_start  = [%llux%llu] \n", (unsigned long long)current_task_start_out[0],(unsigned long long)current_task_start_out[1]);
+                    fprintf(stderr, "         current_task_stride = [%llux%llu] \n", (unsigned long long)current_task_stride_out[0],(unsigned long long)current_task_stride_out[1]);
+                    fprintf(stderr, "         current_task_count  = [%llux%llu] \n", (unsigned long long)current_task_count_out[0],(unsigned long long)current_task_count_out[1]);
+                    fprintf(stderr, "         current_task_block  = [%llux%llu] \n", (unsigned long long)current_task_block_out[0],(unsigned long long)current_task_block_out[1]);
+                    
+                    fprintf(stderr, "         iterator_task_start  = [%llux%llu] \n", (unsigned long long)iterator_task_start_out[0],(unsigned long long)iterator_task_start_out[1]);
+                    fprintf(stderr, "         iterator_task_stride = [%llux%llu] \n", (unsigned long long)iterator_task_stride_out[0],(unsigned long long)iterator_task_stride_out[1]);
+                    fprintf(stderr, "         iterator_task_count  = [%llux%llu] \n", (unsigned long long)iterator_task_count_out[0],(unsigned long long)iterator_task_count_out[1]);
+                    fprintf(stderr, "         iterator_task_block  = [%llux%llu] \n", (unsigned long long)iterator_task_block_out[0],(unsigned long long)iterator_task_block_out[1]);
+                     */
+                    if(current_task_start_out[0]==iterator_task_start_out[0]){
+                        if((current_task_start_out[1]==iterator_task_start_out[1]+iterator_task_count_out[1])&&(current_task_count_out[2]==iterator_task_count_out[2])&&(current_task_start_out[2]==iterator_task_start_out[2]))
+                       //fprintf(stderr,"current task start index [%lld] is  contagious to iterator task start=[%lld] and count=[%lld] are contagious",current_task_start_out[0],iterator_task_start_out[0],iterator_task_count_out[0]);
+                            {
+                                start[0]=iterator_task_start_out[0];
+                                start[1]=iterator_task_start_out[1];
+                                start[2]=iterator_task_start_out[2];
+                                count[0]=iterator_task_count_out[0];
+                                count[1]=current_task_count_out[1]+iterator_task_count_out[1];
+                                count[2]=iterator_task_count_out[2];
+                                //fprintf(stderr,"start=%llux%llux%llu and count=%llux%llux%llu\n",iterator_task_start_out[0],iterator_task_start_out[1],iterator_task_start_out[2],iterator_task_count_out[0],current_task_count_out[1]+iterator_task_count_out[1],iterator_task_count_out[2]);
+                    
+                                return 1;
+                
+                            }
+                        else
+                                return 0;
+                    }
+                    else if ((current_task_start_out[1]==iterator_task_start_out[1]))
+                    {
+                       if((current_task_start_out[0]==iterator_task_start_out[0]+iterator_task_count_out[0])&&(current_task_count_out[2]==iterator_task_count_out[2])&&(current_task_start_out[2]==iterator_task_start_out[2]))
+                       //fprintf(stderr,"current task start index [%lld] is  contagious to iterator task start=[%lld] and count=[%lld] are contagious",current_task_start_out[0],iterator_task_start_out[0],iterator_task_count_out[0]);
+                        {    
+                            start[0]=iterator_task_start_out[0];
+                            start[1]=iterator_task_start_out[1];
+                            start[2]=iterator_task_start_out[2];
+                            count[0]=current_task_count_out[0]+iterator_task_count_out[0];
+                            count[1]=iterator_task_count_out[1];
+                            count[2]=iterator_task_count_out[2];
+                            //fprintf(stderr,"start=%llux%llux%llu and count=%llux%llux%llu\n",iterator_task_start_out[0],iterator_task_start_out[1],iterator_task_start_out[2],current_task_count_out[0]+iterator_task_count_out[0],iterator_task_count_out[1],iterator_task_count_out[2]);
+                    
+                            return 1;
+                        }
+                        else
+                                return 0;
+                    }
+                    else 
+                        {
+                            return 0;
+                    
+                         }
+                    
+
+                }
+
+            }
+    }
+    return 0;
+
+}
+
 static herr_t 
 async_dataset_write_merge(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t mem_type_id, hid_t mem_space_id,
-                     hid_t plist_id, const void *buf)
+                     hid_t file_space_id,hid_t plist_id, const void *buf)
 {   
     int ndim; 
     int num_elements;
@@ -9191,16 +9383,15 @@ async_dataset_write_merge(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t
     herr_t slected_block;
     hssize_t numblocks;
     async_dataset_write_args_t *args        = NULL;
-    async_dataset_write_args_t *iter_args;
+    async_dataset_write_args_t *iter_args=NULL;
 
     hsize_t      *start_out,
                 *stride_out,
                 *count_out,
                 *block_out;
-    hsize_t      start_out3[3],
-                stride_out3[3],
-                count_out3[3],
-                block_out3[3];
+    hsize_t *start,*count;   
+             
+    
     herr_t       status;
     async_task_t *task_iter;
     async_task_list_t *task_list_iter;
@@ -9214,7 +9405,7 @@ async_dataset_write_merge(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t
     //fprintf(stderr,"this is before H5Sget_select_type\n");
 
      //print_dataspace(mem_space_id);
-    
+     //print_dataspace(file_space_id);
     /*if(type==H5S_SEL_HYPERSLABS)
         fprintf(stderr,"A hyperslab or compound hyperslab is selected\n");
     else if(type==H5S_SEL_POINTS)
@@ -9225,34 +9416,41 @@ async_dataset_write_merge(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t
          fprintf(stderr,"No selection is defined\n");
          */
 
-    //ndim = H5Sget_simple_extent_ndims(mem_space_id);
-    //buffer = malloc(ndim * 2 * sizeof(hsize_t));
-    //*buffer= (hsize_t *)malloc(sizeof(ndim) * 2);
-    //numblocks=H5Sget_select_hyper_nblocks(aid);
-    //slected_block=H5Sget_select_hyper_blocklist(mem_space_id,0,numblocks,buffer);
-    //fprintf(stderr, "ndim=%d\n",ndim);
-    //fprintf(stderr,"%llu\n",buffer[0]);
-    //async_task_t *task_iter;
-    
-    //#define DL_FOREACH	(head,el)
-      //  for(el=head;el;el=el->next)
-
-   // task->async_obj->file_task_list_head,
     
     DL_FOREACH(async_instance_g->qhead.queue,task_list_iter){
         DL_FOREACH(task_list_iter->task_list, task_iter){
             if(task_iter->func==async_dataset_write_fn){
+                //checking whether the iterator task is dataset write  operation
                 if(task_iter->parent_obj == parent_obj){
-
+                        //checking whether the iterator task is operating on the same dataset of the current task
                     iter_args = task_iter->args;
                     
     
 
-                     fprintf(stderr,"%lld   %lld  %lld\n",task_iter->async_obj->under_object,iter_args->mem_space_id,iter_args->file_space_id);
-                     fprintf(stderr,"For memory space:\n");
+                     //fprintf(stderr,"%lld   %lld  %lld\n",task_iter->async_obj->under_object,iter_args->mem_space_id,iter_args->file_space_id);
+                     /* fprintf(stderr,"For memory space:\n");
                      print_dataspace(iter_args->mem_space_id);
                      fprintf(stderr,"For file space:\n");
-                     print_dataspace(iter_args->file_space_id);
+                     print_dataspace(iter_args->file_space_id); */
+                     ndim = H5Sget_simple_extent_ndims(file_space_id);
+                     start=malloc(ndim*sizeof(hsize_t));
+                     count=malloc(ndim*sizeof(hsize_t));
+                     if(check_contagious(file_space_id,iter_args->file_space_id,start,count))
+                       {   fprintf(stderr, "----####contagious####------\n");
+                           if(ndim==1)
+                                fprintf(stderr,"\nstart=%llu count=%llu\n",start[0],count[0]);
+                           
+                           else if(ndim==2)
+                                fprintf(stderr,"\nstart=%llux%llu count=%llux%llu\n",start[0],start[1],count[0],count[1]);
+                           
+                           else if(ndim==3)
+                                fprintf(stderr,"\nstart=%llux%llux%llu count=%llux%llux%llu\n",start[0],start[1],start[2],count[0],count[1],count[2]);
+                           
+                       //return 1;
+                       }
+                    else
+                       fprintf(stderr, "----#### Not contagious####------\n"); 
+
 
                      }
             }
@@ -9261,13 +9459,10 @@ async_dataset_write_merge(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t
         }
     }  
 
-    /* async_dataset_write_args_t
-    dset
-    mem_space_id
-    file_space_id */
+    
 
 
-   // args->dset = parent_obj->under_object;
+   
 
 
     return 1;
@@ -9292,7 +9487,7 @@ async_dataset_write(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t mem_t
     
     
 
-    async_dataset_write_merge(aid,parent_obj,mem_type_id,mem_space_id,plist_id,buf);
+    async_dataset_write_merge(aid,parent_obj,mem_type_id,mem_space_id,file_space_id,plist_id,buf);
     
     
     async_instance_g->prev_push_state = async_instance_g->start_abt_push;

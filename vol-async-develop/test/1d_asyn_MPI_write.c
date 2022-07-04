@@ -135,10 +135,9 @@ main (int argc, char **argv)
         
         status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out, NULL, count_out, NULL);
         
-        fprintf(stderr,"-----------------  on memory space using offset  %llu and count %llu  \n",offset_out[0],count_out[0]);
+        printf("-----------------  on memory space using offset  %llu and count %llu  \n",offset_out[0],count_out[0]);
 
         status = H5Dwrite_async (dataset, H5T_NATIVE_INT, memspace, dataspace, data_transfer_propertylist, data,es_id);    
-        
         
         
         offset[0] = 5;
@@ -153,7 +152,6 @@ main (int argc, char **argv)
         
         status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out, NULL, count_out, NULL);
         
-
         printf("-----------------  on memory space using offset  %llu and count %llu  \n",offset_out[0],count_out[0]);
 
         status = H5Dwrite_async (dataset, H5T_NATIVE_INT, memspace, dataspace, data_transfer_propertylist, data,es_id);    
@@ -191,8 +189,8 @@ main (int argc, char **argv)
 
         status = H5Dwrite_async (dataset, H5T_NATIVE_INT, memspace, dataspace, data_transfer_propertylist, data,es_id);    
         
-         
-           
+        
+          
         
         
 
@@ -218,7 +216,7 @@ main (int argc, char **argv)
         
           
         
-         offset[0] = 25;
+        offset[0] = 25;
         
         count[0]  = 3;
         status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset, NULL, count, NULL);  
@@ -235,7 +233,7 @@ main (int argc, char **argv)
         // status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace, H5P_DEFAULT, data_out2,es_id);
         status = H5Dwrite_async (dataset, H5T_NATIVE_INT, memspace, dataspace, data_transfer_propertylist, data,es_id);    
         
-        /* 
+          
         
         offset[0] = 28;
         
@@ -272,8 +270,8 @@ main (int argc, char **argv)
         
         // status = H5Dread_async (dataset, H5T_NATIVE_INT, memspace, dataspace, H5P_DEFAULT, data_out2,es_id);
         status = H5Dwrite_async (dataset, H5T_NATIVE_INT, memspace, dataspace, data_transfer_propertylist, data,es_id);    
-         */
-           
+        
+          
         
            }
             
@@ -305,7 +303,6 @@ main (int argc, char **argv)
             
         }
         for (i = 0; i < X; i++)
-            //if(data_out[i]!=0)
                 printf(" %4d ", data_out[i]);
         printf("\n");
         
@@ -350,4 +347,3 @@ main (int argc, char **argv)
     return 0;
 
 }     
-
