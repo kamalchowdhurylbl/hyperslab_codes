@@ -127,13 +127,66 @@ main (int argc, char **argv)
         
         
     memspace = H5Screate_simple (RANK_OUT, dimsm, NULL);   //RANK_OUT=3
-
-
+   //Test case#1
+   /* int arr[4][4]={
+       {0,0,2,2},
+       {0,2,2,1},
+       {0,3,2,2},
+       {0,5,2,1}
+       }; */
+   //Test case#2
+   /* int arr[4][4]={
+       {0,0,2,2},
+       {2,0,1,2},
+       {0,3,2,2},
+       {0,5,2,1}
+       }; */
+    //Test case#3
+    /* int arr[4][4]={
+       {0,0,2,1},
+       {0,1,2,2},
+       {0,3,2,1},
+       {2,1,2,2}
+       }; */
+    //Test case#4
+    /* int arr[4][4]={
+       {0,1,2,3},
+       {0,4,2,2},
+       {2,0,2,1},
+       {2,1,2,3}
+       }; */
+    //Test case#5
+    int arr[4][4]={
+       {1,1,2,3},
+       {1,4,2,1},
+       {3,1,1,3},
+       {3,4,1,1}
+       };
     if(mpi_rank==0){
 
+        for(int i=0;i<4;i++){
+
+            offset[0] = arr[i][0];
+            offset[1] = arr[i][1];
+            count[0]  = arr[i][2];
+            count[1]  = arr[i][3];
+            status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset, NULL, count, NULL);  
         
+            printf("MPI rank=%d Hyperslab operation on dataspace using offset  %llux%llu and count %llux%llu \n",mpi_rank,offset[0],offset[1],count[0],count[1]);
+            offset_out[0] = arr[i][0];  //offset=0x0
+            offset_out[1] = arr[i][1];
+            count_out[0]  = arr[i][2]; //count_out=2 X 2   
+            count_out[1]  = arr[i][3];   
+            
+            status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out, NULL, count_out, NULL);
+            
+            printf("-----------------  on memory space using offset  %llux%llu and count %llux%llu  \n",offset_out[0],offset_out[1],count_out[0],count_out[1]);
+
+            status = H5Dwrite_async (dataset, H5T_NATIVE_INT, memspace, dataspace, data_transfer_propertylist, data,es_id);    
+            
+        }
         
-        offset[0] = 0;
+        /* offset[0] = 0;
         offset[1]=0;
         count[0]  = 2;
         count[1]  = 2;
@@ -155,14 +208,14 @@ main (int argc, char **argv)
         offset[0] = 0;
         offset[1]=2;
         count[0]  = 2;
-        count[1]  = 2;
+        count[1]  = 1;
         status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset, NULL, count, NULL);  
     
         printf("MPI rank=%d Hyperslab operation on dataspace using offset  %llux%llu and count %llux%llu \n",mpi_rank,offset[0],offset[1],count[0],count[1]);
         offset_out[0] = 0;  //offset=0x0
         offset_out[1] = 2;
         count_out[0]  = 2; //count_out=2 X 2   
-        count_out[1]  = 2;   
+        count_out[1]  = 1;   
         
         status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out, NULL, count_out, NULL);
         
@@ -172,14 +225,14 @@ main (int argc, char **argv)
         
         
         offset[0] = 0;
-        offset[1]=4;
+        offset[1]=3;
         count[0]  = 2;
         count[1]  = 2;
         status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset, NULL, count, NULL);  
     
         printf("MPI rank=%d Hyperslab operation on dataspace using offset  %llux%llu and count %llux%llu \n",mpi_rank,offset[0],offset[1],count[0],count[1]);
         offset_out[0] = 0;  //offset=0x0
-        offset_out[1] = 4;
+        offset_out[1] = 3;
         count_out[0]  = 2; //count_out=2 X 2   
         count_out[1]  = 2;   
         
@@ -189,6 +242,25 @@ main (int argc, char **argv)
 
         status = H5Dwrite_async (dataset, H5T_NATIVE_INT, memspace, dataspace, data_transfer_propertylist, data,es_id);    
         
+         
+        offset[0] = 0;
+        offset[1]=5;
+        count[0]  = 2;
+        count[1]  = 1;
+        status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset, NULL, count, NULL);  
+    
+        printf("MPI rank=%d Hyperslab operation on dataspace using offset  %llux%llu and count %llux%llu \n",mpi_rank,offset[0],offset[1],count[0],count[1]);
+        offset_out[0] = 0;  //offset=0x0
+        offset_out[1] = 5;
+        count_out[0]  = 2; //count_out=2 X 2   
+        count_out[1]  = 1;   
+        
+        status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out, NULL, count_out, NULL);
+        
+        printf("-----------------  on memory space using offset  %llux%llu and count %llux%llu \n",offset_out[0],offset_out[1],count_out[0],count_out[1]);
+
+        status = H5Dwrite_async (dataset, H5T_NATIVE_INT, memspace, dataspace, data_transfer_propertylist, data,es_id);    
+         */
         
 
     }
@@ -224,7 +296,7 @@ main (int argc, char **argv)
         printf("MPI rank=%d Hyperslab operation on dataspace using offset  %llux%llu and count %llux%llu \n",mpi_rank,offset[0],offset[1],count[0],count[1]);
 
         offset_out[0] = 2;
-        offset_out[1] = 2; //offset_out=2x0
+        offset_out[1] = 2; //offset_out=2x2
         
         count_out[0]  = 2;
         count_out[1]  = 2;  //count_out=4x2
@@ -239,15 +311,15 @@ main (int argc, char **argv)
         offset[1] = 4;
         
         count[0]  = 2;
-        count[1]  = 2;  //count=4x2
+        count[1]  = 2;  //count=2x2
         status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset, NULL, count, NULL);  
         printf("MPI rank=%d Hyperslab operation on dataspace using offset  %llux%llu and count %llux%llu \n",mpi_rank,offset[0],offset[1],count[0],count[1]);
 
         offset_out[0] = 2;
-        offset_out[1] = 4; //offset_out=2x0
+        offset_out[1] = 4; //offset_out=2x4
         
         count_out[0]  = 2;
-        count_out[1]  = 2;  //count_out=4x2
+        count_out[1]  = 2;  //count_out=2x2
         status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out, NULL, count_out, NULL);
         printf("-----------------  on memory space using offset  %llux%llu and count %llux%llu  \n",offset_out[0],offset_out[1],count_out[0],count_out[1]);
         

@@ -9107,9 +9107,9 @@ int print_dataspace(hid_t mem_space_id){
                 if( ndim==1){
                     
                     fprintf(stderr, "         start  = [%llu] \n", (unsigned long long)start_out[0]);
-                    fprintf(stderr, "         stride = [%llu] \n", (unsigned long long)stride_out[0]);
+                    //fprintf(stderr, "         stride = [%llu] \n", (unsigned long long)stride_out[0]);
                     fprintf(stderr, "         count  = [%llu] \n", (unsigned long long)count_out[0]);
-                    fprintf(stderr, "         block  = [%llu] \n", (unsigned long long)block_out[0]);
+                    //fprintf(stderr, "         block  = [%llu] \n", (unsigned long long)block_out[0]);
                     //fprintf(stderr, "Hyperslab operation on dataspace using start=%llu and count=%llu\n",start_out[0],count_out[0]);
                     //fflush(stdout);
 
@@ -9118,16 +9118,16 @@ int print_dataspace(hid_t mem_space_id){
                 else if (ndim==2){
 
                     fprintf(stderr, "         start  = [%llu, %llu] \n", (unsigned long long)start_out[0], (unsigned long long)start_out[1]);
-                    fprintf(stderr, "         stride = [%llu, %llu] \n", (unsigned long long)stride_out[0], (unsigned long long)stride_out[1]);
+                    //fprintf(stderr, "         stride = [%llu, %llu] \n", (unsigned long long)stride_out[0], (unsigned long long)stride_out[1]);
                     fprintf(stderr, "         count  = [%llu, %llu] \n", (unsigned long long)count_out[0], (unsigned long long)count_out[1]);
-                    fprintf(stderr, "         block  = [%llu, %llu] \n", (unsigned long long)block_out[0], (unsigned long long)block_out[1]);
+                    //fprintf(stderr, "         block  = [%llu, %llu] \n", (unsigned long long)block_out[0], (unsigned long long)block_out[1]);
                 }
                 else if(ndim==3){
 
                     fprintf(stderr, "         start  = [%llu, %llu, %llu] \n", (unsigned long long)start_out[0], (unsigned long long)start_out[1], (unsigned long long)start_out[2]);
-                    fprintf(stderr, "         stride = [%llu, %llu, %llu] \n", (unsigned long long)stride_out[0], (unsigned long long)stride_out[1], (unsigned long long)stride_out[2]);
+                    //fprintf(stderr, "         stride = [%llu, %llu, %llu] \n", (unsigned long long)stride_out[0], (unsigned long long)stride_out[1], (unsigned long long)stride_out[2]);
                     fprintf(stderr, "         count  = [%llu, %llu, %llu] \n", (unsigned long long)count_out[0], (unsigned long long)count_out[1], (unsigned long long)count_out[2]);
-                    fprintf(stderr, "         block  = [%llu, %llu, %llu] \n", (unsigned long long)block_out[0], (unsigned long long)block_out[1], (unsigned long long)block_out[2]);
+                    //fprintf(stderr, "         block  = [%llu, %llu, %llu] \n", (unsigned long long)block_out[0], (unsigned long long)block_out[1], (unsigned long long)block_out[2]);
                 }
 
                 free(start_out);
@@ -9174,8 +9174,96 @@ int print_dataspace(hid_t mem_space_id){
 return 1;
 
 }
+static int size=0;
+hsize_t *start_contiguous;
+hsize_t *count_contiguous;
+int push_contiguous(int ndim,hsize_t *start,hsize_t *count){
+    hsize_t *start_temp;
+    hsize_t *count_temp;
+    int i;
+    if(size==0){
+        start_contiguous=malloc(ndim*sizeof(hsize_t));
+        count_contiguous=malloc(ndim*sizeof(hsize_t));
+        
+    }
+    else
+    {   start_temp=malloc(ndim*size*sizeof(hsize_t));
+        count_temp=malloc(ndim*size*sizeof(hsize_t));
+        for(i=0;i<size;i++){
 
-int check_contagious(hid_t current_task_space_id, hid_t task_iterator_file_space_id,hsize_t *start, hsize_t *count){
+            start_temp[i]=start_contiguous[i];
+            count_temp[i]=count_contiguous[i];
+        }
+        start_contiguous=malloc(ndim*(size+1)*sizeof(hsize_t));
+        count_contiguous=malloc(ndim*(size+1)*sizeof(hsize_t));
+        for(i=0;i<size;i++){
+
+            start_contiguous[i]=start_temp[i];
+            count_contiguous[i]=count_temp[i];
+
+        }
+        //start_contiguous[size]=start[0];
+        //count_contiguous[size]=count[0];
+    }
+    if(ndim==1){
+            start_contiguous[size]=start[0];
+            count_contiguous[size]=count[0];
+        }
+        else if(ndim==2){
+
+            start_contiguous[size-1]=start[0];
+            start_contiguous[size]=start[1];
+            count_contiguous[size-1]=count[0];
+            count_contiguous[size]=count[1];
+        }
+        else if(ndim==3){
+            start_contiguous[size-2]=start[0];
+            start_contiguous[size-1]=start[1];
+            start_contiguous[size]=start[2];
+            count_contiguous[size-2]=count[0];
+            count_contiguous[size-1]=count[1];
+            count_contiguous[size]=count[2];
+        }
+   
+   
+    
+   //fprintf(stderr,"size =%d\n",size);
+
+    
+    size++;
+    return 0;
+}
+int check_contiguous_overlap(int ndim,hsize_t *start, hsize_t *count ){
+    int i,j;
+   /*  for(i=0;i<size;i++)
+    {
+        fprintf(stderr,"\n  start contiguous=%llu   count contiguous=%llu\n",start_contiguous[i],count_contiguous[i]);
+
+    }  */
+
+    for(i=0;i<size;i++)
+    {  
+        for(j=i+1;j<size;j++)
+
+            if(start_contiguous[j]==start_contiguous[i]+count_contiguous[i]){
+
+                start[0]=start_contiguous[i];
+                count[0]=count_contiguous[i]+count_contiguous[j];
+                return 1;
+            }
+            else if(start_contiguous[i]==start_contiguous[j]+count_contiguous[j]){
+
+                start[0]=start_contiguous[j];
+                count[0]=count_contiguous[i]+count_contiguous[j];
+                return 1;
+            }
+        
+    } 
+
+   return 0;
+
+}
+int check_contiguous(hid_t current_task_space_id, hid_t task_iterator_file_space_id,hsize_t *start, hsize_t *count){
     
     int ndim; 
     int num_elements;
@@ -9245,7 +9333,7 @@ int check_contagious(hid_t current_task_space_id, hid_t task_iterator_file_space
                     if(current_task_start_out[0]==iterator_task_start_out[0]+iterator_task_count_out[0])
                        //fprintf(stderr,"current task start index [%lld] is  contagious to iterator task start=[%lld] and count=[%lld] are contagious",current_task_start_out[0],iterator_task_start_out[0],iterator_task_count_out[0]);
                        {    start[0]=iterator_task_start_out[0];
-                           count[0]=current_task_start_out[0]+current_task_count_out[0];
+                           count[0]=current_task_count_out[0]+iterator_task_count_out[0];
                            //fprintf(stderr,"start=%llu and count=%llu\n",iterator_task_start_out[0],current_task_start_out[0]+current_task_count_out[0]);
                             
                            return 1;
@@ -9275,7 +9363,7 @@ int check_contagious(hid_t current_task_space_id, hid_t task_iterator_file_space
                             start[1]=iterator_task_start_out[1];
                             count[0]=iterator_task_count_out[0];
                             count[1]=current_task_count_out[1]+iterator_task_count_out[1];
-                            //fprintf(stderr,"start=%llux%llu and count=%llux%llu\n",iterator_task_start_out[0],iterator_task_start_out[1],iterator_task_count_out[0],current_task_count_out[1]+iterator_task_count_out[1]);
+                            //fprintf(stderr,"in func start=%llux%llu and count=%llux%llu\n",iterator_task_start_out[0],iterator_task_start_out[1],iterator_task_count_out[0],current_task_count_out[1]+iterator_task_count_out[1]);
                            
                             return 1;
                         
@@ -9290,7 +9378,7 @@ int check_contagious(hid_t current_task_space_id, hid_t task_iterator_file_space
                                     start[1]=iterator_task_start_out[1];
                                     count[0]=current_task_count_out[0]+iterator_task_count_out[0];
                                     count[1]=iterator_task_count_out[1];
-                                    //fprintf(stderr,"start=%llux%llu and count=%llux%llu\n",iterator_task_start_out[0],iterator_task_start_out[1],current_task_count_out[0]+iterator_task_count_out[0],iterator_task_count_out[1]);
+                                   //fprintf(stderr,"in func start=%llux%llu and count=%llux%llu\n",iterator_task_start_out[0],iterator_task_start_out[1],current_task_count_out[0]+iterator_task_count_out[0],iterator_task_count_out[1]);
                            
                                     return 1;
                                     }
@@ -9428,18 +9516,28 @@ async_dataset_write_merge(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t
     
 
                      //fprintf(stderr,"%lld   %lld  %lld\n",task_iter->async_obj->under_object,iter_args->mem_space_id,iter_args->file_space_id);
-                     /* fprintf(stderr,"For memory space:\n");
-                     print_dataspace(iter_args->mem_space_id);
-                     fprintf(stderr,"For file space:\n");
-                     print_dataspace(iter_args->file_space_id); */
+                     fprintf(stderr,"For iterator task file space:\n");
+                     print_dataspace(iter_args->file_space_id); 
+                     fprintf(stderr,"For current task file space:\n");
+                     print_dataspace(file_space_id); 
+                     
+                      //H5Sclose(iter_args->file_space_id);// close the dataspace 
+
                      ndim = H5Sget_simple_extent_ndims(file_space_id);
                      start=malloc(ndim*sizeof(hsize_t));
                      count=malloc(ndim*sizeof(hsize_t));
-                     if(check_contagious(file_space_id,iter_args->file_space_id,start,count))
-                       {   fprintf(stderr, "----####contagious####------\n");
+                     if(check_contiguous(file_space_id,iter_args->file_space_id,start,count)||check_contiguous(iter_args->file_space_id,file_space_id,start,count))
+                       {   fprintf(stderr, "----####contiguous####------\n");
                            if(ndim==1)
-                                fprintf(stderr,"\nstart=%llu count=%llu\n",start[0],count[0]);
-                           
+                                {   push_contiguous(ndim,start,count);
+                                    
+                                    fprintf(stderr,"\nstart=%llu count=%llu\n",start[0],count[0]);
+                                 if(check_contiguous_overlap(ndim,start,count))
+                                    {fprintf(stderr, "\ncontiguous overlap\n");
+                                    
+                                    fprintf(stderr,"\n after contiguous overlap start=%llu count=%llu\n",start[0],count[0]);
+                                    }
+                                }
                            else if(ndim==2)
                                 fprintf(stderr,"\nstart=%llux%llu count=%llux%llu\n",start[0],start[1],count[0],count[1]);
                            
@@ -9449,7 +9547,7 @@ async_dataset_write_merge(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t
                        //return 1;
                        }
                     else
-                       fprintf(stderr, "----#### Not contagious####------\n"); 
+                       fprintf(stderr, "-------- Not contiguous---------\n"); 
 
 
                      }
