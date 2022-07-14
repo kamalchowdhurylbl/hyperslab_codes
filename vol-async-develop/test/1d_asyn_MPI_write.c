@@ -7,6 +7,7 @@
  ************************************************************/
  
 #include "hdf5.h"
+#include<string.h>
 
 
 #define FILE        "sds.h5"
@@ -22,7 +23,15 @@
 #define X1 40
 
 
+void drawBorder(){
+    fprintf(stderr,"\n");
+    for(int i=0;i<60;i++)
+    {
+        fprintf(stderr,"#");
+    }
+    fprintf(stderr,"\n");
 
+}
 
 int
 main (int argc, char **argv)
@@ -85,44 +94,39 @@ main (int argc, char **argv)
 
    
 
-    //3d data
+    //1d data
     int l=0;
     
     for (i = 0; i < X; i++)
-                {data[i] = l;   //6x6x6
+                {data[i] = l;   
                 l++;}
             
-    if(mpi_rank==0){    
+    /* if(mpi_rank==0){    
 
         for (i = 0; i < X; i++)
             printf("%5d", data[i]);
         printf("\n");
             
-        } 
+        }  */
     
-    //2d operations
+    //1d operations
     
     file = H5Fcreate_async (FILE, H5F_ACC_TRUNC, H5P_DEFAULT, property_list_id_MPIO,es_id);  
     
     
-
     dimsf[0]=X;
-    
-    
     dataspace = H5Screate_simple (RANK, dimsf, NULL); 
-    
-   
-    dataset = H5Dcreate_async (file, DATASETNAME, H5T_STD_I32BE, dataspace, H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT,es_id);   //H5T_STD_I32BE = 32-bit big-endian signed integers
-
     dimsm[0] = X1;
-        
     memspace = H5Screate_simple (RANK_OUT, dimsm, NULL);   //RANK_OUT=3
+    dataset = H5Dcreate_async (file, DATASETNAME, H5T_STD_I32BE, dataspace, H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT,es_id);  
+
+    
     // Test case# 1
     /* int arr[4][2]={{0,5},
                   {5,3},
                   {8,2},
                   {10,10}
-                };  */
+                };   */
     // Test case# 2
     /* int arr[4][2]={{0,5},
                   {5,5},
@@ -154,33 +158,112 @@ main (int argc, char **argv)
                   {8,3}
                 };  */ 
     // Test case# 7
-    int arr[4][2]={{3,5},
+   /*  int arr[4][2]={{3,5},
                   {11,10},
                   {5,3},
                   {8,3}
-                };
+              };  */
+
+
+     int array[][4][2]={
+                {{0,5},
+                  {5,3},
+                  {8,2},   //testcase 1
+                  {10,10}
+                },
+                {{0,5},
+                  {5,5},
+                  {8,2},  //testcase 2
+                  {10,5}
+                },
+                {{0,5},
+                  {10,10},  //testcase 3
+                  {8,2},
+                  {5,3}
+                },
+                {{0,5},
+                  {10,10},  //testcase 4
+                  {5,3},
+                  {8,3}
+                },
+                {{0,5},
+                  {10,10},
+                  {5,5},
+                  {20,3}
+                }
+    }; 
+    /* int array[][4][2]={
+                {{0,5},
+                  {5,3},
+                  {8,2},   //testcase 1
+                  {10,10}
+                },
+                {{0,5},
+                  {5,5},
+                  {8,2},  //testcase 2
+                  {10,5}
+                },
+                {{0,5},
+                  {10,10},  //testcase 3
+                  {8,2},
+                  {5,3}
+                },
+                {{0,5},
+                  {10,10},  //testcase 4
+                  {5,3},
+                  {8,3}
+                }
+   
+    };  */
+    
+    int testcases=(int)sizeof(array)/sizeof(array[0]);
+    //testcases=7;
+    hid_t dataset_array[testcases];
+    char datasetname[testcases][12];
+    //int arr[4][2];
+    //fprintf(stderr, "%ld",sizeof(array)/sizeof(array[0]));
+    for(int j=0;j<testcases;j++){
+  
+            snprintf(datasetname[j], 12, "Testcase# %d", j+1);
+            //fprintf(stderr,"dataset name= %s \n",datasetname[j]);
+            dataset_array[j] = H5Dcreate_async (file, datasetname[j], H5T_STD_I32BE, dataspace, H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT,es_id);  
+
+    
+
+    }
+
+    
+    
     if(mpi_rank==0){
 
+         for(int j=0;j<testcases;j++){
+            
+          
+            drawBorder();
+            fprintf(stderr,"dataset name= %s \n",datasetname[j]);
+            drawBorder();
+
+            for(int i=0;i<4;i++){
+
+
+                offset[0] = array[j][i][0];
+                count[0]  = array[j][i][1];
+                
+                status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset, NULL, count, NULL);  
+            
+                //printf("MPI rank=%d Hyperslab operation on dataspace using offset  %llu and count %llu \n",mpi_rank,offset[0],count[0]);
+                offset_out[0] = array[j][i][0];  
+                count_out[0]  = array[j][i][1];   
+                
+                status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out, NULL, count_out, NULL);
+                
+                //fprintf(stderr,"-----------------  on memory space using offset  %llu and count %llu  \n",offset_out[0],count_out[0]);
+
+                status = H5Dwrite_async (dataset_array[j], H5T_NATIVE_INT, memspace, dataspace, data_transfer_propertylist, data,es_id);    
+             } 
         
-        for(int i=0;i<4;i++){
-            offset[0] = arr[i][0];
-            count[0]  = arr[i][1];
-            
-            status = H5Sselect_hyperslab (dataspace, H5S_SELECT_SET, offset, NULL, count, NULL);  
+        }
         
-            printf("MPI rank=%d Hyperslab operation on dataspace using offset  %llu and count %llu \n",mpi_rank,offset[0],count[0]);
-            offset_out[0] = arr[i][0];  //offset=0x0
-            count_out[0]  = arr[i][1]; //count_out=2 X 2   
-            
-            status = H5Sselect_hyperslab (memspace, H5S_SELECT_SET, offset_out, NULL, count_out, NULL);
-            
-            fprintf(stderr,"-----------------  on memory space using offset  %llu and count %llu  \n",offset_out[0],count_out[0]);
-
-            status = H5Dwrite_async (dataset, H5T_NATIVE_INT, memspace, dataspace, data_transfer_propertylist, data,es_id);    
-            
-
-
-        } 
         /* offset[0] = 0;
         count[0]  = 5;
         
@@ -249,7 +332,7 @@ main (int argc, char **argv)
         
          
             */
-        
+            
         
 
     }
@@ -334,22 +417,21 @@ main (int argc, char **argv)
            }
             
            
-        
+                
+    if (print_dbg_msg)        
+      fprintf(stderr, "before H5ESwait done\n");
             
-            
-
-            
-    status = H5ESwait(es_id, H5ES_WAIT_FOREVER, &num_in_progress, &op_failed);
+    /* status = H5ESwait(es_id, H5ES_WAIT_FOREVER, &num_in_progress, &op_failed);
     if (status < 0) {
         fprintf(stderr, "Error with H5ESwait\n");
         
-    }
+    } */
     if (print_dbg_msg)
         fprintf(stderr, "H5ESwait done\n");
     
         MPI_Barrier(comm);
 
-    if(mpi_rank==0){
+    /* if(mpi_rank==0){
         status = H5Dread_async (dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data_out,es_id);
 
         printf("\nData out from the file\n");
@@ -365,20 +447,33 @@ main (int argc, char **argv)
                 printf(" %4d ", data_out[i]);
         printf("\n");
         
-    } 
-        
-        /*
+    } */ 
+    /*
     * Close/release resources.
     */
     H5Sclose (dataspace);
+    fprintf(stderr,"dataspace closed\n");
 
     H5Sclose (memspace);
+    fprintf(stderr,"memspace closed\n");
+    for(int j=0;j<testcases;j++){
+  
+            
+            status = H5Dclose_async(dataset_array[j] , es_id);
+            if (status < 0) {
+                fprintf(stderr, "Closing dataset failed\n");
+                //ret = -1;
+            }
+    
+
+    }
     
     status = H5Dclose_async(dataset, es_id);
     if (status < 0) {
         fprintf(stderr, "Closing dataset failed\n");
         //ret = -1;
     }
+     
 
     status = H5Fclose_async(file, es_id);
     if (status < 0) {
