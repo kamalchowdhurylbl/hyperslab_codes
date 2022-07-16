@@ -9569,15 +9569,16 @@ async_dataset_write_merge(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t
                                     }  */
                                     status = H5Sget_regular_hyperslab (iter_args->file_space_id, iter_file_start, NULL, iter_file_count, NULL);
                                     //fprintf(stderr,"%d\n",status);
-                                    fprintf(stderr,"\n iter mem_start=%lld mem_count=%lld file_start=%lld file_count=%lld element_size=%lld\n",mem_start[0],mem_count[0],file_start[0],file_count[0],element_size);
+                                    fprintf(stderr,"\n iter_mem_start=%lld iter_mem_count=%lld iter_file_start=%lld iter_file_count=%lld element_size=%lld\n",iter_mem_start[0],iter_mem_count[0],iter_file_start[0],iter_file_count[0],element_size);
                                    if(file_start[0]>=iter_file_start[0])
                                    {
-                                       memcpy(new_buffer,buf+(iter_mem_start[0]*element_size),iter_mem_count[0]*element_size);
-                                       memcpy(new_buffer+(iter_file_count[0]*element_size),buf+(mem_start[0]*element_size),mem_count[0]*element_size);
+                                       //fprintf(stderr,"file_start[0]>=iter_file_start[0]\n");
+                                       memcpy(new_buffer,buf+iter_file_start[0]*element_size,iter_file_count[0]*element_size);
+                                       memcpy(new_buffer+iter_file_count[0]*element_size,buf+mem_start[0]*element_size,file_count[0]*element_size);
                                    }
                                    else{
-                                       memcpy(new_buffer,buf+(mem_start[0]*element_size),mem_count[0]*element_size);
-                                       memcpy(new_buffer+(file_count[0]*element_size),buf+(iter_mem_start[0]*element_size),iter_mem_count[0]*element_size);
+                                       memcpy(new_buffer,buf+(file_start[0]*element_size),file_count[0]*element_size);
+                                       memcpy(new_buffer+mem_count[0]*element_size,buf+(iter_file_start[0]*element_size),iter_mem_count[0]*element_size);
 
                                    }
 
@@ -9597,6 +9598,8 @@ async_dataset_write_merge(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t
                                     //H5Sclose(iter_args->file_space_id);
                                     
                                     iter_args->mem_space_id=new_memspace;
+                                   // iter_args->file_space_id=new_memspace;
+                                    
                                     iter_args->buf=new_buffer;
                                     
                                     
@@ -9606,7 +9609,7 @@ async_dataset_write_merge(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t
                                     //iter_file_count=count;
                                     //fprintf(stderr,"\n iter file space mem_start=%lld mem_count=%lld file_start=%lld file_count=%lld element_size=%lld\n",start[0],count[0],start[0],count[0],element_size);
                                     
-                                    fprintf(stderr,"\n     after operation   start=%llu count=%llu\n",start[0],count[0]);
+                                    //fprintf(stderr,"\n     after operation   start=%llu count=%llu\n",start[0],count[0]);
                                     status = H5Sselect_hyperslab (iter_args->file_space_id, H5S_SELECT_SET, start, NULL,  count, NULL);
                                     
                                     start[0]=0;
