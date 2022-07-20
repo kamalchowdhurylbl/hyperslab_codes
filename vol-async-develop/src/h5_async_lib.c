@@ -9405,16 +9405,16 @@ int check_contiguous(hid_t current_task_space_id, hid_t task_iterator_file_space
                     fprintf(stderr, "         iterator_task_count  = [%llux%llu] \n", (unsigned long long)iterator_task_count_out[0],(unsigned long long)iterator_task_count_out[1]);
                     fprintf(stderr, "         iterator_task_block  = [%llux%llu] \n", (unsigned long long)iterator_task_block_out[0],(unsigned long long)iterator_task_block_out[1]);
                      */
-                    if(current_task_start_out[0]==iterator_task_start_out[0]){
-                        if((current_task_start_out[1]==iterator_task_start_out[1]+iterator_task_count_out[1])&&(current_task_count_out[2]==iterator_task_count_out[2])&&(current_task_start_out[2]==iterator_task_start_out[2]))
+                    if(current_task_start_out[1]==iterator_task_start_out[1]){
+                        if((current_task_start_out[2]==iterator_task_start_out[2]+iterator_task_count_out[2])&&(current_task_count_out[1]==iterator_task_count_out[1])&&(current_task_count_out[0]==iterator_task_count_out[0])&&(current_task_start_out[0]==iterator_task_start_out[0]))
                        //fprintf(stderr,"current task start index [%lld] is  contagious to iterator task start=[%lld] and count=[%lld] are contagious",current_task_start_out[0],iterator_task_start_out[0],iterator_task_count_out[0]);
                             {
                                 start[0]=iterator_task_start_out[0];
                                 start[1]=iterator_task_start_out[1];
                                 start[2]=iterator_task_start_out[2];
                                 count[0]=iterator_task_count_out[0];
-                                count[1]=current_task_count_out[1]+iterator_task_count_out[1];
-                                count[2]=iterator_task_count_out[2];
+                                count[1]=iterator_task_count_out[1];
+                                count[2]=current_task_count_out[2]+iterator_task_count_out[2];
                                 //fprintf(stderr,"start=%llux%llux%llu and count=%llux%llux%llu\n",iterator_task_start_out[0],iterator_task_start_out[1],iterator_task_start_out[2],iterator_task_count_out[0],current_task_count_out[1]+iterator_task_count_out[1],iterator_task_count_out[2]);
                     
                                 return 1;
@@ -9423,16 +9423,16 @@ int check_contiguous(hid_t current_task_space_id, hid_t task_iterator_file_space
                         else
                                 return 0;
                     }
-                    else if ((current_task_start_out[1]==iterator_task_start_out[1]))
+                    else if ((current_task_start_out[2]==iterator_task_start_out[2]))
                     {
-                       if((current_task_start_out[0]==iterator_task_start_out[0]+iterator_task_count_out[0])&&(current_task_count_out[2]==iterator_task_count_out[2])&&(current_task_start_out[2]==iterator_task_start_out[2]))
+                       if((current_task_start_out[1]==iterator_task_start_out[1]+iterator_task_count_out[1])&&(current_task_count_out[2]==iterator_task_count_out[2])&&(current_task_count_out[0]==iterator_task_count_out[0])&&(current_task_start_out[0]==iterator_task_start_out[0]))
                        //fprintf(stderr,"current task start index [%lld] is  contagious to iterator task start=[%lld] and count=[%lld] are contagious",current_task_start_out[0],iterator_task_start_out[0],iterator_task_count_out[0]);
                         {    
                             start[0]=iterator_task_start_out[0];
                             start[1]=iterator_task_start_out[1];
                             start[2]=iterator_task_start_out[2];
-                            count[0]=current_task_count_out[0]+iterator_task_count_out[0];
-                            count[1]=iterator_task_count_out[1];
+                            count[0]=iterator_task_count_out[0];
+                            count[1]=current_task_count_out[1]+iterator_task_count_out[1];
                             count[2]=iterator_task_count_out[2];
                             //fprintf(stderr,"start=%llux%llux%llu and count=%llux%llux%llu\n",iterator_task_start_out[0],iterator_task_start_out[1],iterator_task_start_out[2],current_task_count_out[0]+iterator_task_count_out[0],iterator_task_count_out[1],iterator_task_count_out[2]);
                     
@@ -9464,7 +9464,7 @@ async_dataset_write_merge(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t
     int num_elements;
     hsize_t      nblocks;
     int N1=20;
-    hsize_t     dimsm[1];  
+    hsize_t     *dimsm;  
     void *buffer, *new_buffer;
     hid_t memspace,dataspace;
     H5S_sel_type type;
@@ -9479,11 +9479,12 @@ async_dataset_write_merge(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t
                 *block_out;
     hsize_t *start,*count,*mem_start,*mem_count,*file_start,*file_count,*iter_mem_start,*iter_mem_count,*iter_file_start,*iter_file_count,element_size;   
     
-             
+            
     
     herr_t       status,return_val=0;
     async_task_t *task_iter;
     async_task_list_t *task_list_iter;
+    int buffer_count,feed_buf_count;
 
     
     assert(aid);
@@ -9526,6 +9527,7 @@ async_dataset_write_merge(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t
                      hid_t new_memspace;
                      
                      ndim = H5Sget_simple_extent_ndims(file_space_id);
+                     dimsm=malloc(ndim*sizeof(hsize_t));
                      start=malloc(ndim*sizeof(hsize_t));
                      count=malloc(ndim*sizeof(hsize_t));
                      mem_start=malloc(ndim*sizeof(hsize_t));
@@ -9624,12 +9626,374 @@ async_dataset_write_merge(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t
                                     status = H5Sselect_hyperslab (iter_args->mem_space_id, H5S_SELECT_SET, start, NULL,  count, NULL);
                                 }
                            else if(ndim==2)
-                                fprintf(stderr,"        start=%llux%llu count=%llux%llu\n",start[0],start[1],count[0],count[1]);
-                           
+                                {
+                                    fprintf(stderr,"        start=%llux%llu count=%llux%llu\n",start[0],start[1],count[0],count[1]);
+                                    new_memspace = H5Screate_simple (ndim, count, NULL);
+                                    element_size=H5Tget_size(mem_type_id);
+                                    new_buffer=malloc(count[0]*count[1]*element_size);
+                                    
+                                    status = H5Sget_regular_hyperslab (mem_space_id, mem_start, NULL, mem_count, NULL);
+                                    status = H5Sget_regular_hyperslab (file_space_id, file_start, NULL, file_count, NULL);
+                                   
+                                    //fprintf(stderr,"\nmem_start=%lld mem_count=%lld file_start=%lld file_count=%lld element_size=%lld\n",mem_start[0],mem_count[0],file_start[0],file_count[0],element_size);
+                                    fprintf(stderr,"\n mem_start=%lldx%lld file_start=%lldx%lld ",mem_start[0],mem_start[1],file_start[0],file_start[1]);
+                                    fprintf(stderr,"\n mem_count=%lldx%lld file_count=%lldx%lld \n",mem_count[0],mem_count[1],file_count[0],file_count[1]);
+                                    status = H5Sget_regular_hyperslab (iter_args->mem_space_id, iter_mem_start, NULL, iter_mem_count, NULL);
+                                    /* fprintf(stderr,"%d\n",status);
+                                    if (H5Sis_regular_hyperslab(iter_args->mem_space_id)) {
+                                        fprintf(stderr,"regular hyperslab\n");
+                                    }  */
+                                    status = H5Sget_regular_hyperslab (iter_args->file_space_id, iter_file_start, NULL, iter_file_count, NULL);
+                                    //fprintf(stderr,"%d\n",status);
+                                    fprintf(stderr,"\n iter_mem_start=%lldx%lld iter_file_start=%lldx%lld ",iter_mem_start[0],iter_mem_start[1],iter_file_start[0],iter_file_start[1]);
+                                    fprintf(stderr,"\n iter_mem_count=%lldx%lld iter_file_count=%lldx%lld \n",iter_mem_count[0],iter_mem_count[1],iter_file_count[0],iter_file_count[1]);
+
+                                    H5Sget_simple_extent_dims(file_space_id,dimsm,NULL);
+                                    fprintf(stderr,"\n  dimensions=%lldx%lld \n",dimsm[0],dimsm[1]);
+                                     
+                                    buffer_count=0;
+                                    feed_buf_count=0;
+                                    if(file_start[0]==iter_file_start[0])
+                                    {   
+                                       if(file_start[1]>=iter_file_start[1]){
+                                            if(file_count[0]==iter_file_count[0])
+                                              {   
+                                                  feed_buf_count=dimsm[1]*iter_file_start[0];
+                                                  for(int i=0;i<iter_file_count[0];i++){
+                                                     memcpy(new_buffer+(buffer_count*element_size),buf+(feed_buf_count+iter_file_start[1])*element_size,iter_file_count[1]*element_size);
+                                                    //fprintf(stderr,"element size=%lld\n",element_size);
+                                                    buffer_count+=iter_file_count[1];
+                                                    memcpy(new_buffer+(buffer_count*element_size),buf+(feed_buf_count+file_start[1])*element_size,file_count[1]*element_size);
+                                                    //fprintf(stderr,"element size=%lld\n",element_size);
+                                                    buffer_count+=file_count[1];
+                                                    feed_buf_count+=dimsm[1];
+                                                   // fprintf(stderr,"buffer_count=%d feed_buf_count=%d\n",buffer_count,_buf_count);
+
+                                                  }
+                                                 
+                                              }
+                                           
+                                        }
+                                        else{
+
+                                            if(file_count[0]==iter_file_count[0])
+                                              {   feed_buf_count=dimsm[1]*file_start[0];
+                                                  for(int i=0;i<file_count[0];i++){
+                                                    
+                                                    memcpy(new_buffer+(buffer_count*element_size),buf+(feed_buf_count+file_start[1])*element_size,file_count[1]*element_size);
+                                                    //fprintf(stderr,"element size=%lld\n",element_size);
+                                                    buffer_count+=file_count[1];
+                                                    memcpy(new_buffer+(buffer_count*element_size),buf+(feed_buf_count+iter_file_start[1])*element_size,iter_file_count[1]*element_size);
+                                                    //fprintf(stderr,"element size=%lld\n",element_size);
+                                                    buffer_count+=iter_file_count[1];
+                                                    feed_buf_count+=dimsm[1];
+                                                   // fprintf(stderr,"buffer_count=%d feed_buf_count=%d\n",buffer_count,feed_buf_count);
+
+                                                  }
+                                                 
+                                              }
+
+                                        }
+                                    }
+                                    else if(file_start[1]==iter_file_start[1]){
+                                        if(file_start[0]>=iter_file_start[0]){
+                                            if(file_count[1]==iter_file_count[1])
+                                              {   feed_buf_count=dimsm[1]*iter_file_start[0];
+                                                  for(int i=0;i<iter_file_count[0];i++){
+                                                     memcpy(new_buffer+(buffer_count*element_size),buf+(feed_buf_count+iter_file_start[1])*element_size,iter_file_count[1]*element_size);
+                                                    //fprintf(stderr,"element size=%lld\n",element_size);
+                                                    buffer_count+=iter_file_count[1];
+                                                    feed_buf_count+=dimsm[1];
+                                                   // fprintf(stderr,"buffer_count=%d feed_buf_count=%d\n",buffer_count,feed_buf_count);
+
+                                                  }
+                                                  for(int i=0;i<file_count[0];i++){
+                                                     memcpy(new_buffer+(buffer_count*element_size),buf+(feed_buf_count+file_start[1])*element_size,file_count[1]*element_size);
+                                                    //fprintf(stderr,"element size=%lld\n",element_size);
+                                                    buffer_count+=file_count[1];
+                                                    feed_buf_count+=dimsm[1];
+                                                   // fprintf(stderr,"buffer_count=%d feed_buf_count=%d\n",buffer_count,feed_buf_count);
+                                                  }
+                                              }
+                                        }
+                                        else{
+                                            if(file_count[1]==iter_file_count[1])
+                                              {   feed_buf_count=dimsm[1]*file_start[0];
+                                                  
+                                                  for(int i=0;i<file_count[0];i++){
+                                                     memcpy(new_buffer+(buffer_count*element_size),buf+(feed_buf_count+file_start[1])*element_size,file_count[1]*element_size);
+                                                    //fprintf(stderr,"element size=%lld\n",element_size);
+                                                    buffer_count+=file_count[1];
+                                                    feed_buf_count+=dimsm[1];
+                                                    //fprintf(stderr,"buffer_count=%d feed_buf_count=%d\n",buffer_count,feed_buf_count);
+                                                  }
+                                                  for(int i=0;i<iter_file_count[0];i++){
+                                                     memcpy(new_buffer+(buffer_count*element_size),buf+(feed_buf_count+iter_file_start[1])*element_size,iter_file_count[1]*element_size);
+                                                    //fprintf(stderr,"element size=%lld\n",element_size);
+                                                    buffer_count+=iter_file_count[1];
+                                                    feed_buf_count+=dimsm[1];
+                                                   // fprintf(stderr,"buffer_count=%d feed_buf_count=%d\n",buffer_count,feed_buf_count);
+
+                                                  }
+
+
+                                              }
+                                        }
+                                        
+
+                                        
+                                        
+                                    }
+                                    
+                                   
+
+                                   //memcpy(new_buffer+(file_start[0]*element_size),buf+(mem_start[0]*element_size),mem_count[0]*element_size);
+                                   //memcpy(new_buffer,buf,count[0]*element_size);
+                                   
+                                    /*allocate new_buffer
+                                      get the start and count value from memspace
+                                      based on the start and count copy the data from buf to new buffer
+                                      need to be corect locations
+                                      do the same thing for iter_args->buf and iter_args->memspace.
+                                   */
+                                   
+                                   
+                                    
+                                    H5Sclose(iter_args->mem_space_id);
+                                    //H5Sclose(iter_args->file_space_id);
+                                    
+                                    iter_args->mem_space_id=new_memspace;
+                                   // iter_args->file_space_id=new_memspace;
+                                    
+                                    iter_args->buf=new_buffer;
+                                    
+                                    
+                                    
+                                    
+                                  /* if(check_contiguous_overlap(ndim,start,count))
+                                    {fprintf(stderr, "\ncontiguous overlap\n");
+                                    
+                                    fprintf(stderr,"\n after contiguous overlap start=%llu count=%llu\n",start[0],count[0]);
+                                    }  */
+                                    status = H5Sselect_hyperslab (file_space_id, H5S_SELECT_SET, start, NULL,  count, NULL);
+                                    
+                                    status = H5Sselect_hyperslab (iter_args->file_space_id, H5S_SELECT_SET, start, NULL,  count, NULL);
+                                    
+                                    start[0]=0;
+                                    start[1]=0;
+                                    //fprintf(stderr,"\n iter mem space mem_start=%lld mem_count=%lld file_start=%lld file_count=%lld element_size=%lld\n",start[0],count[0],start[0],count[0],element_size);
+                                   
+                                    status = H5Sselect_hyperslab (iter_args->mem_space_id, H5S_SELECT_SET, start, NULL,  count, NULL);
+                                }
                            else if(ndim==3)
-                                fprintf(stderr,"        start=%llux%llux%llu count=%llux%llux%llu\n",start[0],start[1],start[2],count[0],count[1],count[2]);
-                           
+                                {   
+                                    fprintf(stderr,"        start=%llux%llux%llu count=%llux%llux%llu\n",start[0],start[1],start[2],count[0],count[1],count[2]);
+                                
+                                    new_memspace = H5Screate_simple (ndim, count, NULL);
+                                    element_size=H5Tget_size(mem_type_id);
+                                    new_buffer=malloc(count[0]*count[1]*count[2]*element_size);
+                                    
+                                    status = H5Sget_regular_hyperslab (mem_space_id, mem_start, NULL, mem_count, NULL);
+                                    status = H5Sget_regular_hyperslab (file_space_id, file_start, NULL, file_count, NULL);
+                                   
+                                    //fprintf(stderr,"\nmem_start=%lld mem_count=%lld file_start=%lld file_count=%lld element_size=%lld\n",mem_start[0],mem_count[0],file_start[0],file_count[0],element_size);
+                                    //fprintf(stderr,"\n mem_start=%lldx%lldx%lld file_start=%lldx%lldx%lld ",mem_start[0],mem_start[1],mem_start[2],file_start[0],file_start[1],file_start[2]);
+                                    //fprintf(stderr,"\n mem_count=%lldx%lldx%lld file_count=%lldx%lldx%lld \n",mem_count[0],mem_count[1],mem_count[2],file_count[0],file_count[1],file_count[2]);
+                                    status = H5Sget_regular_hyperslab (iter_args->mem_space_id, iter_mem_start, NULL, iter_mem_count, NULL);
+                                    /* fprintf(stderr,"%d\n",status);
+                                    if (H5Sis_regular_hyperslab(iter_args->mem_space_id)) {
+                                        fprintf(stderr,"regular hyperslab\n");
+                                    }  */
+                                    status = H5Sget_regular_hyperslab (iter_args->file_space_id, iter_file_start, NULL, iter_file_count, NULL);
+                                    //fprintf(stderr,"%d\n",status);
+                                    fprintf(stderr,"\n  file_start=%lldx%lldx%lld iter_file_start=%lldx%lldx%lld ",file_start[0],file_start[1],file_start[2],iter_file_start[0],iter_file_start[1],iter_file_start[2]);
+                                    fprintf(stderr,"\n file_count=%lldx%lldx%lld  iter_file_count=%lldx%lldx%lld \n",file_count[0],file_count[1],file_count[2],iter_file_count[0],iter_file_count[1],iter_file_count[2]);
+                                    H5Sget_simple_extent_dims(file_space_id,dimsm,NULL);
+                                    fprintf(stderr,"\n  dimensions=%lldx%lldx%lld \n",dimsm[0],dimsm[1],dimsm[2]);
+                                    int dim_elements=dimsm[1]*dimsm[2];
+                                    buffer_count=0;
+                                    feed_buf_count=0;
+                                    buffer_count=0;
+                                    feed_buf_count=0;
+                                    int *buf_temp=buf;
+                                    int *new_buffer_temp=new_buffer;
+                                    
+                                    if(file_start[1]==iter_file_start[1])
+                                    {   
+                                       if(file_start[2]>=iter_file_start[2]){
+                                            if(file_count[1]==iter_file_count[1])
+                                              {   
+                                                  if(file_count[0]==iter_file_count[0]){
+                                                        for(int d=file_start[0];d<=file_count[0];d++){
+
+                                                            feed_buf_count=dim_elements*d+dimsm[2]*iter_file_start[1];
+                                                            
+                                                            for(int i=0;i<iter_file_count[1];i++){
+                                                                memcpy(new_buffer+(buffer_count*element_size),buf+(feed_buf_count+iter_file_start[2])*element_size,iter_file_count[2]*element_size);
+                                                                //fprintf(stderr,"element size=%lld\n",element_size);
+                                                                buffer_count+=iter_file_count[2];
+                                                                memcpy(new_buffer+(buffer_count*element_size),buf+(feed_buf_count+file_start[2])*element_size,file_count[2]*element_size);
+                                                                //fprintf(stderr,"element size=%lld\n",element_size);
+                                                                buffer_count+=file_count[2];
+                                                                feed_buf_count+=dimsm[2];
+                                                            // fprintf(stderr,"buffer_count=%d feed_buf_count=%d\n",buffer_count,_buf_count);
+
+                                                            }
+
+                                                        }
+
+                                              }
+                                                  
+                                                  
+                                                 
+                                              }
+                                           
+                                        }
+                                        else{
+
+                                            if(file_count[1]==iter_file_count[1])
+                                              {   
+                                                  if(file_count[0]==iter_file_count[0]){
+                                                        for(int d=file_start[0];d<=file_count[0];d++){
+
+                                                            feed_buf_count=dim_elements*d+dimsm[2]*file_start[1];
+                                                  //feed_buf_count=dimsm[2]*file_start[1];
+                                                            for(int i=0;i<file_count[1];i++){
+                                                            
+                                                            memcpy(new_buffer+(buffer_count*element_size),buf+(feed_buf_count+file_start[2])*element_size,file_count[2]*element_size);
+                                                            //fprintf(stderr,"element size=%lld\n",element_size);
+                                                            buffer_count+=file_count[2];
+                                                            memcpy(new_buffer+(buffer_count*element_size),buf+(feed_buf_count+iter_file_start[2])*element_size,iter_file_count[2]*element_size);
+                                                            //fprintf(stderr,"element size=%lld\n",element_size);
+                                                            buffer_count+=iter_file_count[2];
+                                                            feed_buf_count+=dimsm[2];
+                                                            // fprintf(stderr,"buffer_count=%d feed_buf_count=%d\n",buffer_count,feed_buf_count);
+
+                                                            }
+                                                        }
+                                                  }
+                                                 
+                                              }
+
+                                        }
+                                    }
+                                    else if(file_start[2]==iter_file_start[2]){
+                                        if(file_start[1]>=iter_file_start[1]){
+                                            if(file_count[2]==iter_file_count[2])
+                                              {   
+                                                  if(file_count[0]==iter_file_count[0]){
+                                                        for(int d=file_start[0];d<=file_count[0];d++){
+
+                                                            feed_buf_count=dim_elements*d+dimsm[2]*iter_file_start[1];
+                                                  
+                                                        //feed_buf_count=dimsm[2]*iter_file_start[1];
+                                                        for(int i=0;i<iter_file_count[1];i++){
+                                                            memcpy(new_buffer+(buffer_count*element_size),buf+(feed_buf_count+iter_file_start[2])*element_size,iter_file_count[2]*element_size);
+                                                            //fprintf(stderr,"element size=%lld\n",element_size);
+                                                            buffer_count+=iter_file_count[2];
+                                                            feed_buf_count+=dimsm[2];
+                                                        fprintf(stderr,"buffer_count=%d feed_buf_count=%d\n",buffer_count,feed_buf_count);
+
+                                                        }
+                                                        for(int i=0;i<file_count[1];i++){
+                                                            memcpy(new_buffer+(buffer_count*element_size),buf+(feed_buf_count+file_start[2])*element_size,file_count[2]*element_size);
+                                                            //fprintf(stderr,"element size=%lld\n",element_size);
+                                                            buffer_count+=file_count[2];
+                                                            feed_buf_count+=dimsm[2];
+                                                        // fprintf(stderr,"buffer_count=%d feed_buf_count=%d\n",buffer_count,feed_buf_count);
+                                                        }
+                                                    }
+                                                }
+                                              }
+                                        }
+                                        else{
+                                            if(file_count[2]==iter_file_count[2])
+                                                    {   
+                                                        if(file_count[0]==iter_file_count[0]){
+                                                            for(int d=file_start[0];d<=file_count[0];d++){
+
+                                                                feed_buf_count=dim_elements*d+dimsm[2]*file_start[1];
+
+                                                              //feed_buf_count=dimsm[2]*file_start[1];
+                                                        
+                                                                for(int i=0;i<file_count[1];i++){
+                                                                    memcpy(new_buffer+(buffer_count*element_size),buf+(feed_buf_count+file_start[2])*element_size,file_count[2]*element_size);
+                                                                    //fprintf(stderr,"element size=%lld\n",element_size);
+                                                                    buffer_count+=file_count[2];
+                                                                    feed_buf_count+=dimsm[2];
+                                                                    //fprintf(stderr,"buffer_count=%d feed_buf_count=%d\n",buffer_count,feed_buf_count);
+                                                                }
+                                                                for(int i=0;i<iter_file_count[1];i++){
+                                                                    memcpy(new_buffer+(buffer_count*element_size),buf+(feed_buf_count+iter_file_start[2])*element_size,iter_file_count[2]*element_size);
+                                                                    //fprintf(stderr,"element size=%lld\n",element_size);
+                                                                    buffer_count+=iter_file_count[2];
+                                                                    feed_buf_count+=dimsm[2];
+                                                                // fprintf(stderr,"buffer_count=%d feed_buf_count=%d\n",buffer_count,feed_buf_count);
+
+                                                                }
+                                                    }
+                                                }
+
+
+                                              }
+                                        }
+                                        
+
+                                        
+                                        
+                                    }
+                                   
+
+                                   //memcpy(new_buffer+(file_start[0]*element_size),buf+(mem_start[0]*element_size),mem_count[0]*element_size);
+                                   //memcpy(new_buffer,buf,count[0]*element_size);
+                                   
+                                    /*allocate new_buffer
+                                      get the start and count value from memspace
+                                      based on the start and count copy the data from buf to new buffer
+                                      need to be corect locations
+                                      do the same thing for iter_args->buf and iter_args->memspace.
+                                   */
+                                   
+                                   for(int i=0;i<16;i++)
+                                        fprintf(stderr," buf[%d]=%d ",i,buf_temp[i]);
+                                    fprintf(stderr,"\n");
+
+                                    for(int i=0;i<16;i++)
+                                        fprintf(stderr," new_buffer[%d]=%d ",i,new_buffer_temp[i]);
+                                    fprintf(stderr,"\n"); 
+                                    
+                                    
+                                    H5Sclose(iter_args->mem_space_id);
+                                    //H5Sclose(iter_args->file_space_id);
+                                    
+                                    iter_args->mem_space_id=new_memspace;
+                                   // iter_args->file_space_id=new_memspace;
+                                    
+                                    iter_args->buf=new_buffer;
+                                    
+                                    
+                                    
+                                    
+                                  /* if(check_contiguous_overlap(ndim,start,count))
+                                    {fprintf(stderr, "\ncontiguous overlap\n");
+                                    
+                                    fprintf(stderr,"\n after contiguous overlap start=%llu count=%llu\n",start[0],count[0]);
+                                    }  */
+                                    status = H5Sselect_hyperslab (file_space_id, H5S_SELECT_SET, start, NULL,  count, NULL);
+                                    
+                                    status = H5Sselect_hyperslab (iter_args->file_space_id, H5S_SELECT_SET, start, NULL,  count, NULL);
+                                    
+                                    start[0]=0;
+                                    start[1]=0;
+                                    start[2]=0;
+                                    //fprintf(stderr,"\n iter mem space mem_start=%lld mem_count=%lld file_start=%lld file_count=%lld element_size=%lld\n",start[0],count[0],start[0],count[0],element_size);
+                                   
+                                    status = H5Sselect_hyperslab (iter_args->mem_space_id, H5S_SELECT_SET, start, NULL,  count, NULL);
+                                    
+                                    
+                                }
                        //return 1;
+                          
                        }
                      
                     else{
@@ -9644,8 +10008,8 @@ async_dataset_write_merge(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t
        
         }
     }  
-
     
+   
 
     /*  */ 
    
@@ -9675,6 +10039,7 @@ async_dataset_write(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t mem_t
     
 
     return_val=async_dataset_write_merge(aid,parent_obj,mem_type_id,mem_space_id,file_space_id,plist_id,buf);
+    
     
     if(return_val==1)
         goto done;
