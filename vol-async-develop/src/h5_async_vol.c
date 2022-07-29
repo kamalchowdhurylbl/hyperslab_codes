@@ -131,6 +131,7 @@ typedef struct async_task_t {
     ABT_eventual          eventual;
     int                   in_abt_pool;
     int                   is_done;
+    int                   is_merge;
     ABT_thread            abt_thread;
     hid_t                 err_stack;
     int                   n_dep;
@@ -255,8 +256,9 @@ typedef struct async_attr_write_args_t {
     void * buf;
     hid_t  dxpl_id;
     void **req;
-#ifdef ENABLE_WRITE_MEMCPY
+
     bool    free_buf;
+#ifdef ENABLE_WRITE_MEMCPY
     hsize_t data_size;
 #endif
 } async_attr_write_args_t;
@@ -330,8 +332,9 @@ typedef struct async_dataset_write_args_t {
     hid_t  plist_id;
     void * buf;
     void **req;
-#ifdef ENABLE_WRITE_MEMCPY
+
     bool    free_buf;
+#ifdef ENABLE_WRITE_MEMCPY
     hsize_t data_size;
 #endif
 } async_dataset_write_args_t;
@@ -8857,8 +8860,8 @@ async_dataset_write_fn(void *foo)
     assert(task);
     assert(task->async_obj);
     assert(task->async_obj->magic == ASYNC_MAGIC);
-
-    if (task->is_done == 1)
+    fprintf(stderr,"task is_merge=%d\n",task->is_merge);
+    if (task->is_merge == 1)
         goto done;
 
     pool_ptr = task->async_obj->pool_ptr;
@@ -8990,17 +8993,19 @@ done:
     if (async_instance_g && NULL != async_instance_g->qhead.queue && async_instance_g->start_abt_push)
         push_task_to_abt_pool(&async_instance_g->qhead, *pool_ptr, __func__);
 
-#ifdef ENABLE_WRITE_MEMCPY
+
     if (args->free_buf && args->buf) {
         free(args->buf);
+#ifdef ENABLE_WRITE_MEMCPY
         async_instance_g->used_mem -= args->data_size;
 #ifdef ENABLE_DBG_MSG
         if (async_instance_g &&
             (async_instance_g->mpi_rank == ASYNC_DBG_MSG_RANK || -1 == ASYNC_DBG_MSG_RANK))
             fprintf(fout_g, "  [ASYNC ABT DBG] %s released dset memcpy\n", __func__);
 #endif
+  #endif
     }
-#endif
+
 
 #ifdef ENABLE_TIMING
     task->end_time = clock();
@@ -9508,11 +9513,12 @@ foreach_iteration(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t mem_typ
     DL_FOREACH(async_instance_g->qhead.queue, task_list_iter)
     {
         DL_FOREACH(task_list_iter->task_list, task_iter)
-        {
+        {    
             if (task_iter->func == async_dataset_write_fn) {
                 // checking whether the iterator task is dataset write  operation
                 if (task_iter->parent_obj == parent_obj && task_iter->is_done != 1) {
                     // checking whether the iterator task is operating on the same dataset of the current task
+                    
                     iter_args = task_iter->args;
 
                     // fprintf(stderr,"%lld   %lld
@@ -9536,17 +9542,25 @@ foreach_iteration(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t mem_typ
                     iter_mem_count  = malloc(ndim * sizeof(hsize_t));
                     iter_file_start = malloc(ndim * sizeof(hsize_t));
                     iter_file_count = malloc(ndim * sizeof(hsize_t));
+
+
+                   
+                    
                     if (check_contiguous(file_space_id, iter_args->file_space_id, start, count) ||
                         check_contiguous(iter_args->file_space_id, file_space_id, start, count))
                     // if(check_contiguous(file_space_id,iter_args->file_space_id,start,count))
-                    {
+                    {    
                         return_val = 1;
                         fprintf(stderr, "\n-------#### contiguous####---------\n");
-
+                         
+                        
+                        /* if(prev_task!=NULL){
+                                continue;
+                            } */  
                         if (prev_task != NULL)
-                            prev_task->is_done = 1;
+                            prev_task->is_merge = 1;
                         return_task_val = task_iter;
-
+                       
                         fprintf(stderr, "\n-------#### 2 contiguous####---------\n");
                         if (ndim == 1) { // push_contiguous(ndim,start,count);
 
@@ -9618,6 +9632,7 @@ foreach_iteration(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t mem_typ
                             // iter_args->file_space_id=new_memspace;
 
                             iter_args->buf = new_buffer;
+                            iter_args->free_buf=1;
 
                             /* if(check_contiguous_overlap(ndim,start,count))
                               {fprintf(stderr, "\ncontiguous overlap\n");
@@ -9638,8 +9653,10 @@ foreach_iteration(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t mem_typ
 
                             status = H5Sselect_hyperslab(iter_args->mem_space_id, H5S_SELECT_SET, start, NULL,
                                                          count, NULL);
+                            //free(new_buffer);
                         }
                         else if (ndim == 2) {
+                            
                             fprintf(stderr, "        start=%llux%llu count=%llux%llu\n", start[0], start[1],
                                     count[0], count[1]);
                             new_memspace = H5Screate_simple(ndim, count, NULL);
@@ -9660,10 +9677,7 @@ foreach_iteration(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t mem_typ
                                     mem_count[1], file_count[0], file_count[1]);
                             status = H5Sget_regular_hyperslab(iter_args->mem_space_id, iter_mem_start, NULL,
                                                               iter_mem_count, NULL);
-                            /* fprintf(stderr,"%d\n",status);
-                            if (H5Sis_regular_hyperslab(iter_args->mem_space_id)) {
-                                fprintf(stderr,"regular hyperslab\n");
-                            }  */
+                            
                             status = H5Sget_regular_hyperslab(iter_args->file_space_id, iter_file_start, NULL,
                                                               iter_file_count, NULL);
                             // fprintf(stderr,"%d\n",status);
@@ -9679,7 +9693,7 @@ foreach_iteration(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t mem_typ
 
                             buffer_count   = 0;
                             feed_buf_count = 0;
-                            if (file_start[0] == iter_file_start[0]) {
+                             if (file_start[0] == iter_file_start[0]) {
                                 if (file_start[1] >= iter_file_start[1]) {
                                     if (file_count[0] == iter_file_count[0]) {
                                         feed_buf_count = dimsm[1] * iter_file_start[0];
@@ -9717,8 +9731,7 @@ foreach_iteration(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t mem_typ
                                             // fprintf(stderr,"element size=%lld\n",element_size);
                                             buffer_count += iter_file_count[1];
                                             feed_buf_count += dimsm[1];
-                                            fprintf(stderr,"buffer_count=%d \
-                                            feed_buf_count=%d\n",buffer_count,feed_buf_count);
+                                            fprintf(stderr,"buffer_count=%d feed_buf_count=%d\n",buffer_count,feed_buf_count);
                                         }
                                     }
                                 }
@@ -9775,24 +9788,19 @@ foreach_iteration(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t mem_typ
                                         }
                                     }
                                 }
-                            }
+                            } 
 
                             // memcpy(new_buffer+(file_start[0]*element_size),buf+(mem_start[0]*element_size),mem_count[0]*element_size);
                             // memcpy(new_buffer,buf,count[0]*element_size);
 
-                            /*allocate new_buffer
-                              get the start and count value from memspace
-                              based on the start and count copy the data from buf to new buffer
-                              need to be corect locations
-                              do the same thing for iter_args->buf and iter_args->memspace.
-                           */
-                            /* for (int i = 0; i < 16; i++)
-                                fprintf(stderr, " buf[%d]=%d ", i, buf_temp[i]);
-                            fprintf(stderr, "\n");
+                         
+                            // for (int i = 0; i < 16; i++)
+                             //   fprintf(stderr, " buf[%d]=%d ", i, buf_temp[i]);
+                           // fprintf(stderr, "\n");
 
-                            for (int i = 0; i < 16; i++)
-                                fprintf(stderr, " new_buffer[%d]=%d ", i, new_buffer_temp[i]);
-                            fprintf(stderr, "\n"); */
+                           // for (int i = 0; i < 16; i++)
+                            //    fprintf(stderr, " new_buffer[%d]=%d ", i, new_buffer_temp[i]);
+                            //fprintf(stderr, "\n"); 
 
 
                             H5Sclose(iter_args->mem_space_id);
@@ -9802,17 +9810,18 @@ foreach_iteration(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t mem_typ
                             // iter_args->file_space_id=new_memspace;
 
                             iter_args->buf = new_buffer;
+                            iter_args->free_buf=1;
                              int *iter_buf= iter_args->buf;
                             for (int i = 0; i < 16; i++)
                                 fprintf(stderr, " iter_args new_buffer[%d]=%d ", i, iter_buf[i]);
                             fprintf(stderr, "\n");  
 
-                            /* if(check_contiguous_overlap(ndim,start,count))
-                              {fprintf(stderr, "\ncontiguous overlap\n");
+                           // if(check_contiguous_overlap(ndim,start,count))
+                             // {fprintf(stderr, "\ncontiguous overlap\n");
 
-                              fprintf(stderr,"\n after contiguous overlap start=%llu
-                              count=%llu\n",start[0],count[0]);
-                              }  */
+                              //fprintf(stderr,"\n after contiguous overlap start=%llu
+                              //count=%llu\n",start[0],count[0]);
+                              //}  
                             status =
                                 H5Sselect_hyperslab(file_space_id, H5S_SELECT_SET, start, NULL, count, NULL);
 
@@ -9827,6 +9836,7 @@ foreach_iteration(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t mem_typ
 
                             status = H5Sselect_hyperslab(iter_args->mem_space_id, H5S_SELECT_SET, start, NULL,
                                                          count, NULL);
+                            //free(new_buffer);  */           
                         }
                         else if (ndim == 3) {
                             //fprintf(stderr," foreach iterator mem_type_id=%llu\n",iter_args->mem_type_id);
@@ -10033,7 +10043,8 @@ foreach_iteration(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t mem_typ
                             // iter_args->file_space_id=new_memspace;
 
                             iter_args->buf = new_buffer;
-
+                            iter_args->free_buf=1;
+                            
                              /* int *iter_buf= iter_args->buf;
                             for (int i = 0; i < 16; i++)
                                 fprintf(stderr, " iter_args new_buffer[%d]=%d ", i, iter_buf[i]);
@@ -10064,15 +10075,28 @@ foreach_iteration(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t mem_typ
                                                          count, NULL);
                             //fprintf(stderr," end of foreach iterator mem_type_id=%llu\n",iter_args->mem_type_id);
                             
-
+                          
                         }
                         // return 1;
+                        
                     }
 
                     else {
                         // iter_args->buf=buf;
                         fprintf(stderr, "-------- Not contiguous---------\n");
                     }
+                    free(dimsm);
+                    free(start);
+                    free(count);
+                    free(mem_start);
+                    free(mem_count);
+                    free(file_start);
+                    free(file_count);
+                    free(iter_mem_start);
+                    free(iter_mem_count);
+                    free(iter_file_start);
+                    free(iter_file_count);
+                    
                 }
             }
         }
@@ -10137,9 +10161,9 @@ async_dataset_write_merge(async_instance_t *aid, H5VL_async_t *parent_obj, hid_t
     else
         return_val = 1;
 
-    /* for (int i = 0; return_task_val != NULL; i++)
+   for (int i = 0; return_task_val != NULL; i++)
         return_task_val = foreach_iteration(aid, parent_obj, mem_type_id, mem_space_id, file_space_id,
-                                            plist_id, buf, return_task_val);    */
+                                            plist_id, buf, return_task_val);     
 
     return return_val;
 }
