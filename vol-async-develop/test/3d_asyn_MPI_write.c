@@ -115,13 +115,13 @@ main (int argc, char **argv)
             
     if(mpi_rank==0){    
     for(k=0;k<Z;k++){
-            printf ("\nFirst 3D Data Z=%d:\n ",k);
+            fprintf (stderr,"\nFirst 3D Data Z=%d:\n ",k);
             
             
             for (i = 0; i < X; i++){ 
                 for (j = 0; j < Y; j++) 
-                    printf("%5d", data[k][i][j]);
-            printf("\n ");
+                    fprintf(stderr,"%5d", data[k][i][j]);
+            fprintf(stderr,"\n ");
             }
         } 
     }
@@ -245,12 +245,63 @@ main (int argc, char **argv)
 
     };  */
     int array[][4][6]={
-         {
+        
+        
+      {
+        {0,0,0,1,2,2},
+        {0,0,2,1,2,1},
+        {0,0,3,1,2,2}, //Test case#1
+        {0,0,5,1,2,1}
+       },
+       {
+        {0,0,0,1,2,2},
+        {0,0,2,1,2,1},
+        {0,0,3,1,2,2},//Test case#2
+        {0,0,5,1,2,1}
+       },
+       {
+        {0,1,1,1,3,2},
+        {0,1,3,1,3,1},
+        {0,1,4,1,3,2},//Test case#3
+        {0,4,4,1,2,2}
+       },
+       {
+        {0,1,1,3,3,2},
+        {0,1,3,3,3,1},
+        {0,1,4,3,3,2},//Test case#4
+        {0,4,4,1,2,2}
+       },
+       {
+        {1,0,1,2,2,2},
+        {1,3,4,2,2,2},
+        {1,3,3,2,2,1},//Test case#5
+        {1,1,4,1,2,2}
+       },
+       {
+        {1,0,1,2,2,2},
+        {1,3,4,2,2,2},
+        {1,3,3,2,2,1},//Test case#6
+        {1,1,4,2,2,2}
+       },
+       {
         {1,1,3,2,2,1},
         {1,3,4,2,2,2},
         {1,3,3,2,2,1},//Test case#7
         {1,1,4,2,2,2}
-       }
+       },
+       {
+       {0,1,1,1,2,3},
+       {0,3,1,1,1,3},
+       {0,3,4,1,1,1},//Testcase# 8
+       {0,1,4,1,2,1},
+       },
+       {
+       {0,3,1,1,1,3},
+       {0,1,1,1,2,3},
+       {0,3,4,1,1,1},//Testcase# 9
+       {0,1,4,1,2,1},
+       }, 
+       
     };
 
 
@@ -301,6 +352,11 @@ main (int argc, char **argv)
                 status = H5Dwrite_async (dataset_array[j], H5T_NATIVE_INT, memspace, dataspace, data_transfer_propertylist, data,es_id); 
             
             }
+            status = H5ESwait(es_id, H5ES_WAIT_FOREVER, &num_in_progress, &op_failed);
+                if (status < 0) {
+                    fprintf(stderr, "Error with H5ESwait\n");
+                    
+                }
         }
         
         /* offset[0] = 0;
@@ -504,15 +560,15 @@ main (int argc, char **argv)
             fprintf(stderr, "Error with H5ESwait\n");
             
         }
-        printf("\nData out from the file\n");
+        fprintf(stderr,"\nData out from the file\n");
         for(k=0;k<Z;k++){
-            printf ("\nFirst 3D Data Z=%d:\n ",k);
+            fprintf (stderr,"\nFirst 3D Data Z=%d:\n ",k);
             
             
             for (i = 0; i < X; i++){ 
                 for (j = 0; j < Y; j++) 
-                    printf("%5d", data_out[k][i][j]);
-            printf("\n ");
+                    fprintf(stderr,"%5d", data_out[k][i][j]);
+            fprintf(stderr,"\n ");
             }
         }
           

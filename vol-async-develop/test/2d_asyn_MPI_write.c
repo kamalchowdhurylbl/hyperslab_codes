@@ -136,7 +136,7 @@ main (int argc, char **argv)
         
     memspace = H5Screate_simple (RANK_OUT, dimsm, NULL);   //RANK_OUT=3
    
-   /*   int array[][4][4]={
+     /* int array[][4][4]={
         {
         {0,0,2,2},
         {0,2,2,1},
@@ -178,15 +178,32 @@ main (int argc, char **argv)
        {1,1,2,3},
        {3,4,1,1},//Testcase# 7
        {1,4,2,1},
-       }
-    }; */  
-  int array[][4][4]={
+       },
        {
        {3,1,1,3},
        {1,1,2,3},
-       {3,4,1,1},//Testcase# 7
+       {1,5,2,1},//Testcase# 8
        {1,4,2,1},
        }
+    }; */  
+   int array[][4][4]={
+       {
+       {1,1,2,3},
+       {1,4,2,1},
+       {3,1,1,3},  //Testcase# 5
+       {3,4,1,1}
+       },
+       {
+       {1,1,2,3},
+       {1,4,2,1},
+       {3,1,1,3},  //Testcase# 5
+       {3,4,1,1}
+       },
+       
+       
+        
+       
+      
        
     };  
     int testcases=(int)sizeof(array)/sizeof(array[0]);
@@ -228,6 +245,12 @@ main (int argc, char **argv)
                 status = H5Dwrite_async (dataset_array[j], H5T_NATIVE_INT, memspace, dataspace, data_transfer_propertylist, data,es_id);    
                 
             }
+           status = H5ESwait(es_id, H5ES_WAIT_FOREVER, &num_in_progress, &op_failed);
+            if (status < 0) {
+                fprintf(stderr, "Error with H5ESwait\n");
+        
+           } 
+
          }
         
         /* offset[0] = 0;
